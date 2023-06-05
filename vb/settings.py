@@ -28,6 +28,10 @@ DEBUG = True
 ALLOWED_HOSTS = ['.ngrok-free.app', 'localhost']
 
 TWILIO_AUTH_TOKEN = "b49c67a20f3de1a89691c99c1f6cc06f"
+
+OPENAI_API_KEY = "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"
+
+
 # Application definition
 
 INSTALLED_APPS = [
