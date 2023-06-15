@@ -10,6 +10,7 @@ from django.urls import reverse
 import openai
 from . import const
 from django.conf import settings
+from . import funcs
 
 openai.api_key = settings.OPENAI_API_KEY
 
@@ -26,14 +27,18 @@ def greet_client(request: HttpRequest):
 
 @require_POST
 @csrf_exempt
-def gather_answer(request: HttpRequest):
+def gather_answer(request: HttpRequest, st: str = "auto"):
     vr = VoiceResponse()
-    if "CANCEL" != request.session["CURRENT_FLOW"] and \
+
+    if "CANCEL" != " ".split(request.session["CURRENT_FLOW"])[0] and \
     "TEXT" in request.session:
         vr.say(request.session["TEXT"], voice="alice", language="pl-PL")
         del request.session["TEXT"]
+    
+    if request.session["REPEAT"]:
+        del request.session["REPEAT"]
     vr.gather(
-        speechTimeout="auto",
+        speechTimeout=st,
         speechModel='experimental_conversations',
         input='speech',
         action='/transfer_to_flow/',
@@ -46,7 +51,7 @@ def gather_answer(request: HttpRequest):
 def present_prompts(request: HttpRequest):
     vr = VoiceResponse()
     vr.say(const.PREPARED_TEXT["PRESENT PROMPTS"], voice="alice", language="pl-PL")
-    vr.redirect(reverse("gather_answer"), method="POST")
+    vr.redirect("/gather_answer/5/", method="POST")
     return HttpResponse(str(vr))
 
 @require_POST
@@ -82,50 +87,62 @@ def transfer_to_flow(request: HttpRequest):
             "wiadomość": "",
             "pytanie_done": False,
             "pytanie": "",
+            "nowy_klient": False
         }
+        request.session["REPEAT"] = False
 
     ### ADD SPEECH TO CHAT ###
     request.session["CHAT"].append(
         {"role": "user", "content": request.POST.get('SpeechResult', '')}
     )
 
+    vr = VoiceResponse()
+    
+    ### CHECK IF USER WANTS TO REPEAT ###
+    funcs.repeat(request, vr)
+
     ### CLASSIFY TOPIC OF CONVERSATION IF START ###
     if request.session["CURRENT_FLOW"] == "START":
         request.session["CURRENT_FLOW"] = openai.Completion.create(
             engine="davinci",
-            prompt=flow_prompt(request),
+            prompt=funcs.flow_prompt(request),
             temperature=0.3,
             stop="\n",
             max_tokens=150,
             n=1,
-        ).choices[0].text.strip()
+        ).choices[0].text.strip() # type: ignore
         print(request.session["CURRENT_FLOW"])
         request.session["CHAT"].insert(0, const.PROMPTS["GENERAL"])
         request.session["CURRENT_FLOW_NUM"] = 0
 
-    vr = VoiceResponse()
+    
 
     ### FLOWS ###
     if request.session["CURRENT_FLOW"] == "ZAPIS":
-        request.session["TEXT"] = const.PREPARED_TEXT["PRZEGLĄD"][
+        ### ADD TEXT TO BE SAID ###
+        request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
             request.session["CURRENT_FLOW_NUM"]
         ]
 
-        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["PRZEGLĄD"][-1]:
-            ### CHECK IF THIS IS THE END OF FLOW ###
+        ### CHECK IF THIS IS THE END ###
+        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-1]:
             request.session["CURRENT_FLOW"] = "START"
             request.session["CURRENT_FLOW_NUM"] = 0
 
-        # to chyba do wywalenia
-        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["PRZEGLĄD"][-2] and \
-        "koniec" in request.session["CHAT"][-1]["content"].lower().split(" "):
-            ### CHECK IF THIS IS THE END OF FLOW ###
-            request.session["CURRENT_FLOW"] = "START"
-            request.session["CURRENT_FLOW_NUM"] = 0
+        # # to chyba do wywalenia
+        # if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-2] and \
+        # "koniec" in request.session["CHAT"][-1]["content"].lower().split(" "):
+        #     ### CHECK IF THIS IS THE END OF FLOW ###
+        #     request.session["CURRENT_FLOW"] = "START"
+        #     request.session["CURRENT_FLOW_NUM"] = 0
+
+        ### GO THROUGH ALL FUNCS ###
+        for func in const.PREPARED_TEXT["ZAPIS"][request.session["CURRENT_FLOW_NUM"]]:
+            func(request, vr)
 
         request.session["CURRENT_FLOW_NUM"] += 1
         print(request.session["CHAT"])
-        vr.redirect(reverse("gather_answer"), method="POST")
+        vr.redirect("/gather_answer/5/", method="POST")
 
 
 
@@ -133,55 +150,3 @@ def transfer_to_flow(request: HttpRequest):
     # request.session["CHAT"].append({"role": "assistant", "content": answer.choices[0].message["content"]}) # type: ignore
     print(request.session["CHAT"])
     return HttpResponse(str(vr))
-
-
-def cancel(request: HttpRequest, vr: VoiceResponse):
-    flow = request.session["CURRENT_FLOW"]
-    last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
-    if set(("anuluj", flow)).issubset(set(last_speech)):
-        request.session["CURRENT_FLOW"] = "CANCEL"
-        request.session["CURRENT_FLOW_NUM"] = 0
-        vr.say(f"Czy na pewno chcą państwo anulować {flow}?", voice="alice", language="pl-PL")
-        request.session["CHAT"].append({"role": "assistant", "content": "Anulowali Państwo zapis na przegląd. Czy mógłabym Państwu jeszcze jakoś pomóc? Aby powtórzyć opcje, proszę powiedzieć 'opcje'."})
-        vr.redirect(reverse("gather_answer"), method="POST")
-
-
-
-def flow_prompt(request):
-    prompt = """Sklasyfikuj temat rozmowy jako ZAPIS (zapisanie klienta na przegląd, wymianę opon, czy inną czynność), WIADOMOŚĆ (przekazanie wiadomości lub pytania), KONIEC (zakończenie rozmowy), lub INNE (jeżeli nie zrozumiałeś tematu wypowiedzi):
-KONWERSACJA: Dzień dobry, mam pytanie na temat ceny przeglądu samochodu. Ile kosztuje przegląd samochodu?
-TEMAT: WIADOMOŚĆ
-KONWERSACJA: Chciałbym zostawić wiadomość Pani Paulinie
-TEMAT: WIADOMOŚĆ
-KONWERSACJA: Chciałbym zapisać się na sprawdzenie czeków w samochodzie
-TEMAT: ZAPIS
-KONWERSACJA: Dzień dobry, chciałbym zapytać o wymianę opon
-TEMAT: WIADOMOŚĆ
-KONWERSACJA: Przekaż informację Panu Jerzemu
-TEMAT: WIADOMOŚĆ
-KONWERSACJA: Chciałbym się skontaktować w sprawie naprawy samochodu
-TEMAT: WIADOMOŚĆ
-KONWERSACJA: Zapis na przegląd samochodu
-TEMAT: ZAPIS
-KONWERSACJA: To wszystko, dziękuję
-TEMAT: KONIEC
-KONWERSACJA: Odpowiedz na pytanie na jakiś temat
-TEMAT: WIADOMOŚĆ
-KONWERSACJA: Chcę wymienić wycieraczki
-TEMAT: ZAPIS
-KONWERSACJA: Za ile będziesz?
-TEMAT: INNE
-KONWERSACJA: """
-    prompt += request.session["CHAT"][-1]["content"]
-    prompt += "\nTEMAT: "
-    return prompt
-
-# request.session["CHAT"].append(const.PROMPTS["PRZEGLAD"])
-        # answer = openai.ChatCompletion.create(
-        #     model="gpt-3.5-turbo",
-        #     messages=request.session["CHAT"],
-        #     temperature=0.8,
-        #     max_tokens=150,
-        #     n=1,
-        #     stop="\n",
-        # )

@@ -1,3 +1,5 @@
+from . import funcs
+
 PROMPTS = {
     "GENERAL": {
         "role": "system", 
@@ -15,16 +17,17 @@ PROMPTS = {
 PREPARED_TEXT = {
     "PRESENT PROMPTS": """Możesz mnie poprosić o zapisanie na jedną lub więcej z oferowanych przez nas usług, lub o przekazanie wiadomości/pytania dla konsultanta. Aby powtórzyć opcje, proszę powiedzieć 'opcje'. Jak mogę pomóc?""",
     "GREET CLIENT": """Cześć, to jest automatyczna sekretarka serwisu Lexusa, Toyoty. W czym mógłabym Państwu dzisiaj pomóc?""",
-    "PRZEGLĄD": [
-        ("{pr}. Jeżeli Państwo mieli inny cel zapisu, na końcu będzie możliwość zmienienia celu. Jeżeli państwo nie chcieli się zapisać na żadną z usług, proszę powiedzieć 'anuluj zapis'. W innym razie, proszę podać swoje imię i nazwisko.", "imie_nazwisko", ["anuluj zapis"]),
-        ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", ["anuluj zapis"]),
-        "Dziękuję. Proszę powoli przeliterować numer rejestracyjny samochodu.",
-        "Dziękuję. Prosze podać markę samochodu."
-        "Dziękuję. Proszę podać model samochodu.",
-        "Dziękuję. Proszę podać rok produkcji samochodu.",
-        "Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, proszę powiedzieć koniec.",
-        "Zapisałem dodatkowe informację, jeżeli mają państwo jeszcze jakieś dodatkowe informacje, proszę powiedzieć. W innym wypadku, proszę powiedzieć koniec.",
-        """Dziękuje, powtórzę zapisane informację. Proszę powiedzieć 'zgadza się' jeżeli wszystko się zgadza, lub 'nie zgadza się' jeżeli trzeba coś poprawić.
+    "ZAPIS": [
+        ("Na jaką usługę/usługi chcieliby Państwo się zapisać?", "zapis", [funcs.cancel]),
+        ("Dziękuję. Chciałabym się zapytać, czy Państwo już byli u nas w serwisie?", "nowy_klient", [funcs.cancel]),
+        ("Dziękuję. Poprosiłabym Państwa o imię i nazwisko.", "imie_nazwisko", [funcs.cancel]),
+        ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", [funcs.cancel]),
+        ("Dziękuję. Proszę powoli przeliterować numer rejestracyjny samochodu.", "numer_rejestracyjny", [funcs.cancel]),
+        ("Dziękuję. Prosze podać markę samochodu.", "marka", [funcs.cancel]),
+        ("Dziękuję. Proszę podać model samochodu.", "model", [funcs.cancel]),
+        ("Dziękuję. Proszę podać rok produkcji samochodu.", "rok_produkcji", [funcs.cancel]),
+        ("Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, proszę powiedzieć koniec.", "dodatkowe_informacje", [funcs.cancel, funcs.end]),
+        ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec' jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
         Cel zapisu: {zapis}
         Imię i nazwisko: {imie_nazwisko}
         Numer telefonu: {numer_telefonu}
@@ -32,11 +35,13 @@ PREPARED_TEXT = {
         Marka samochodu: {marka}
         Model samochodu: {model}
         Rok produkcji samochodu: {rok_produkcji}
-        Dodatkowe informacje: {dodatkowe_informacje}"""
-        "Dziękuje. Państwo zostali zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo smsa z potwierdzeniem wizity. Czy mógłbym w czymś jeszcze pomóc?",
+        Dodatkowe informacje: {dodatkowe_informacje}""", "", [funcs.cancel, funcs.repeat]),
+        ("Dziękuje. Państwo zostali zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo smsa z potwierdzeniem wizity. Czy mógłbym w czymś jeszcze pomóc?", "zapis", [funcs.cancel, funcs.end]),
         6,
-        9
-    ]
+        9,
+        ("Oczywiście, proszę powiedzieć co mam poprawić, a następnie powtórzę wszystko co zrozumiałam.", "", [funcs.cancel]),
+    ],
+    "WIADOMOŚĆ": []
 }
 
 FLOWS = {
