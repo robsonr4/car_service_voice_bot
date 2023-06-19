@@ -8,18 +8,18 @@ def cancel(request: HttpRequest, vr: VoiceResponse):
     if set(("anuluj", flow)).issubset(set(last_speech)):
         request.session["CURRENT_FLOW"] = "CANCEL ZAPIS"
         vr.say(f"Czy na pewno chcą państwo anulować {flow}?", voice="alice", language="pl-PL")
-        request.session["CHAT"].append({"role": "assistant", "content": "Anulowali Państwo zapis na przegląd. Czy mógłabym Państwu jeszcze jakoś pomóc? Aby powtórzyć opcje, proszę powiedzieć 'opcje'."})
+        # request.session["CHAT"].append({"role": "assistant", "content": "Anulowali Państwo zapis na przegląd. Czy mógłabym Państwu jeszcze jakoś pomóc? Aby powtórzyć opcje, proszę powiedzieć 'opcje'."})
         vr.redirect("/gather_answer/", method="POST")
 
 def repeat(request: HttpRequest, vr: VoiceResponse):
     """ Check if the caller wants to repeat the last speech."""
 
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
-    if "powtórz" in set(last_speech):        
+    if "powtórz" in set(last_speech):
         vr.redirect("/gather_answer/", method="POST")
     else:
         return False
-    
+
 def end(request: HttpRequest, vr: VoiceResponse):
     """ Chech if the caller wants to end the conversation."""
 
@@ -28,6 +28,22 @@ def end(request: HttpRequest, vr: VoiceResponse):
         vr.redirect(reverse("gather_answer"), method="POST")
     else:
         return False
+
+def fix_zapis(request: HttpRequest, vr: VoiceResponse):
+    """ Check if the caller wants to correct the saved information,
+and if yes, then gather the answer and correct info."""
+
+    last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
+    if set(("nie", "zgadza")).issubset(set(last_speech)):
+        request.session["CURRENT_FLOW"] = "POPRAWA ZAPIS"
+        vr.say(
+            "Oczywiście, proszę powiedzieć powoli co mam poprawić, a następnie powtórzę wszystko co zrozumiałam.",
+            voice="alice",
+            language="pl-PL")
+        vr.redirect("/gather_answer/", method="POST")
+    else:
+        return False
+
 
 def flow_prompt(request: HttpRequest):
     prompt = """Sklasyfikuj temat rozmowy jako ZAPIS (zapisanie klienta na przegląd, wymianę opon, czy inną czynność), WIADOMOŚĆ (przekazanie wiadomości lub pytania), KONIEC (zakończenie rozmowy), lub INNE (jeżeli nie zrozumiałeś tematu wypowiedzi):

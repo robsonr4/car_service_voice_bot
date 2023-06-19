@@ -34,7 +34,7 @@ def gather_answer(request: HttpRequest, st: str = "auto"):
     "TEXT" in request.session:
         vr.say(request.session["TEXT"], voice="alice", language="pl-PL")
         del request.session["TEXT"]
-    
+
     if request.session["REPEAT"]:
         del request.session["REPEAT"]
     vr.gather(
@@ -97,7 +97,7 @@ def transfer_to_flow(request: HttpRequest):
     )
 
     vr = VoiceResponse()
-    
+
     ### CHECK IF USER WANTS TO REPEAT ###
     funcs.repeat(request, vr)
 
@@ -115,10 +115,19 @@ def transfer_to_flow(request: HttpRequest):
         request.session["CHAT"].insert(0, const.PROMPTS["GENERAL"])
         request.session["CURRENT_FLOW_NUM"] = 0
 
-    
+
 
     ### FLOWS ###
     if request.session["CURRENT_FLOW"] == "ZAPIS":
+
+        ### SAVE ANSWER ### ###### FUNKCJA DO ZAPISU DANYCH DLA ROZNYCH LABELOW
+        if request.session["CURRENT_FLOW_NUM"] != 0:
+            request.session["CLIENT_DATA"][
+                const.PREPARED_TEXT["ZAPIS"][
+                    request.session["CURRENT_FLOW_NUM"] - 1
+                ]
+            ] = request.session["CHAT"][-1]["content"]
+        ######################################################################
         ### ADD TEXT TO BE SAID ###
         request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
             request.session["CURRENT_FLOW_NUM"]
@@ -137,7 +146,7 @@ def transfer_to_flow(request: HttpRequest):
         #     request.session["CURRENT_FLOW_NUM"] = 0
 
         ### GO THROUGH ALL FUNCS ###
-        for func in const.PREPARED_TEXT["ZAPIS"][request.session["CURRENT_FLOW_NUM"]]:
+        for func in const.PREPARED_TEXT["ZAPIS"][request.session["CURRENT_FLOW_NUM"]][2]:
             func(request, vr)
 
         request.session["CURRENT_FLOW_NUM"] += 1
