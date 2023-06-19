@@ -44,6 +44,35 @@ and if yes, then gather the answer and correct info."""
     else:
         return False
 
+def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict):
+    """ Save the client's data in the zapis flow."""
+
+    bool_vars = ["nowy_klient"]
+    str_vars = [
+        "zapis", "imie_nazwisko", "numer_rejestracyjny",
+         "rok_produkcji", "dodatkowe informacje",
+        "numer_telefonu"
+    ]
+    last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
+    var_name = PREPARED_TEXT[flow][-1][request.session["CURRENT_FLOW_NUM"] - 1][1]
+
+    if var_name in bool_vars and \
+    set(("tak")).issubset(set(last_speech)):
+        request.session["CLIENT_DATA"][var_name] = True
+        return True
+    elif var_name in bool_vars and \
+    set(("nie")).issubset(set(last_speech)):
+        request.session["CLIENT_DATA"][var_name] = False
+        return True
+    elif var_name in str_vars:
+        request.session["CLIENT_DATA"][var_name] = request.session["CHAT"][-1]["content"]
+        return True
+    elif var_name == "marka":
+        request.session["CLIENT_DATA"][var_name] = request.session["CHAT"][-1]["content"]
+        return True
+    
+    
+    return request.session["CLIENT_DATA"]
 
 def flow_prompt(request: HttpRequest):
     prompt = """Sklasyfikuj temat rozmowy jako ZAPIS (zapisanie klienta na przegląd, wymianę opon, czy inną czynność), WIADOMOŚĆ (przekazanie wiadomości lub pytania), KONIEC (zakończenie rozmowy), lub INNE (jeżeli nie zrozumiałeś tematu wypowiedzi):
