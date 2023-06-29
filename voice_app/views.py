@@ -30,13 +30,16 @@ def greet_client(request: HttpRequest):
 def gather_answer(request: HttpRequest, st: str = "auto"):
     vr = VoiceResponse()
 
-    if "CANCEL" != " ".split(request.session["CURRENT_FLOW"])[0] and \
+    if "CURRENT_FLOW" in request.session and \
+    "CANCEL" != " ".split(request.session["CURRENT_FLOW"])[0] and \
     "TEXT" in request.session:
         vr.say(request.session["TEXT"], voice="alice", language="pl-PL")
         del request.session["TEXT"]
 
-    if request.session["REPEAT"]:
+    if "REPEAT" in request.session and \
+    request.session["REPEAT"]:
         del request.session["REPEAT"]
+
     vr.gather(
         speechTimeout=st,
         speechModel='experimental_conversations',
@@ -95,7 +98,7 @@ def transfer_to_flow(request: HttpRequest):
     request.session["CHAT"].append(
         {"role": "user", "content": request.POST.get('SpeechResult', '')}
     )
-
+    print(request.session["CHAT"][-1]["content"])
     vr = VoiceResponse()
 
     ### CHECK IF USER WANTS TO REPEAT ###
@@ -111,32 +114,37 @@ def transfer_to_flow(request: HttpRequest):
             max_tokens=150,
             n=1,
         ).choices[0].text.strip() # type: ignore
-        print(request.session["CURRENT_FLOW"])
         request.session["CHAT"].insert(0, const.PROMPTS["GENERAL"])
         request.session["CURRENT_FLOW_NUM"] = 0
 
-
-
+    print("here")
     ### FLOWS ###
     if request.session["CURRENT_FLOW"] == "ZAPIS":
 
-        ### SAVE ANSWER ### ###### FUNKCJA DO ZAPISU DANYCH DLA ROZNYCH LABELOW
+        ### SAVE ANSWER ###
         if request.session["CURRENT_FLOW_NUM"] != 0:
-            request.session["CLIENT_DATA"][
-                const.PREPARED_TEXT["ZAPIS"][
-                    request.session["CURRENT_FLOW_NUM"] - 1
-                ]
-            ] = request.session["CHAT"][-1]["content"]
-        ######################################################################
+            funcs.save_flow(
+                request,
+                request.session["CURRENT_FLOW"],
+                const.PREPARED_TEXT
+            )
+
         ### ADD TEXT TO BE SAID ###
-        request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
-            request.session["CURRENT_FLOW_NUM"]
-        ]
+        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-1]:
+            request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
+                request.session["CURRENT_FLOW_NUM"]
+            ][0].format(**request.session["CLIENT_DATA"])
+        else:
+            request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
+                request.session["CURRENT_FLOW_NUM"]
+            ][0]
 
         ### CHECK IF THIS IS THE END ###
-        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-1]:
+        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-1] + 1:
             request.session["CURRENT_FLOW"] = "START"
             request.session["CURRENT_FLOW_NUM"] = 0
+
+
 
         # # to chyba do wywalenia
         # if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-2] and \
@@ -150,7 +158,6 @@ def transfer_to_flow(request: HttpRequest):
             func(request, vr)
 
         request.session["CURRENT_FLOW_NUM"] += 1
-        print(request.session["CHAT"])
         vr.redirect("/gather_answer/5/", method="POST")
 
 
@@ -158,4 +165,5 @@ def transfer_to_flow(request: HttpRequest):
     # vr.say(answer.choices[0].message["content"], voice="alice", language="pl-PL") # type: ignore
     # request.session["CHAT"].append({"role": "assistant", "content": answer.choices[0].message["content"]}) # type: ignore
     print(request.session["CHAT"])
+    print(request.session["CLIENT_DATA"])
     return HttpResponse(str(vr))

@@ -28,16 +28,15 @@ PREPARED_TEXT = {
         ("Dziękuję. Proszę podać rok produkcji samochodu.", "rok_produkcji", [cancel, repeat]),
         ("Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, proszę powiedzieć koniec.", "dodatkowe_informacje", [cancel, repeat]),
         ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec' jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
-        Cel zapisu: {zapis}
-        Imię i nazwisko: {imie_nazwisko}
-        Numer telefonu: {numer_telefonu}
-        Numer rejestracyjny samochodu: {numer_rejestracyjny}
-        Marka samochodu: {marka}
-        Model samochodu: {model}
-        Rok produkcji samochodu: {rok_produkcji}
-        Dodatkowe informacje: {dodatkowe_informacje}""", "", [cancel, repeat, end]),
+        Cel zapisu. {zapis}.
+        Imię i nazwisko. {imie_nazwisko}.
+        Numer telefonu. {numer_telefonu}
+        Numer rejestracyjny samochodu. {numer_rejestracyjny}
+        Marka samochodu. {marka}
+        Model samochodu. {model}
+        Rok produkcji samochodu. {rok_produkcji}
+        Dodatkowe informacje. {dodatkowe_informacje}""", "", [cancel, repeat, end]),
         ("Dziękuje. Państwo zostali zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo smsa z potwierdzeniem wizity. Czy mógłbym w czymś jeszcze pomóc?", "", [repeat]),
-        6,
         9,
     ],
     "POPRAWA ZAPISU": [
@@ -58,3 +57,21 @@ FLOWS = {
     "ZAPIS": "zapis",
     "WIADOMOŚĆ": "wiadomość",
 }
+
+POSSIBILITIES = """ Select which word from POSSIBILITIES resembles the SPEECH the most, if you think that none of them do, select 'none of the above' option:
+POSSIBILITIES: lexus, toyota;
+SPEECH: Lexus;
+MATCH: lexus;
+POSSIBILITIES: RAV4, Corolla, Yaris, Aygo;
+SPEECH: Raf cztery;
+MATCH: RAV4;
+POSSIBILITIES: 2010, 2011, 2012, 2013, 2014, 2015;
+SPEECH: dwa tysiące dziesięć;
+MATCH: 2010;
+POSSIBILITIES: LS400, LS600, SC400, IS300, IS220d;
+SPEECH: sc-300;
+MATCH: none of the above;
+POSSIBILITIES: {possibilities};
+SPEECH: {speech};
+MATCH:
+"""
