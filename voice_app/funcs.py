@@ -9,20 +9,26 @@ openai.api_key = settings.OPENAI_API_KEY
 
 
 def cancel(request: HttpRequest, vr: VoiceResponse):
-    flow: str = request.session["CURRENT_FLOW"]
+    flow: str = request.session["CURRENT_FLOW"].lower()
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
+    print(last_speech)
     if set(("anuluj", flow)).issubset(set(last_speech)):
         request.session["CURRENT_FLOW"] = "CANCEL ZAPIS"
-        vr.say(f"Czy na pewno chcą państwo anulować {flow}?", voice="alice", language="pl-PL")
+        request.session["CURRENT_FLOW_NUM"] -= 1
         # request.session["CHAT"].append({"role": "assistant", "content": "Anulowali Państwo zapis na przegląd. Czy mógłabym Państwu jeszcze jakoś pomóc? Aby powtórzyć opcje, proszę powiedzieć 'opcje'."})
         vr.redirect("/gather_answer/", method="POST")
+        print("CANCELLED")
+        print(" ".split(request.session["CURRENT_FLOW"])[0])
+        return True
 
 def repeat(request: HttpRequest, vr: VoiceResponse):
     """ Check if the caller wants to repeat the last speech."""
 
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
     if "powtórz" in set(last_speech):
+        request.session["REPEAT"] = True
         vr.redirect("/gather_answer/", method="POST")
+        return True
     else:
         return False
 
