@@ -1,4 +1,4 @@
-from .funcs import cancel, repeat, end
+from .funcs import cancel, end
 
 PROMPTS = {
     "GENERAL": {
@@ -13,30 +13,32 @@ PROMPTS = {
         "content": """Nie witaj się ponownie. Poproś klienta pojedynczo o imię i nazwisko, numer telefonu, numer rejestracyjny samochodu, model samochodu, rok produkcji samochodu, przebieg samochodu, dodatkowe informacje."""
     }
 }
-"Zrozumiałam, że chcą Państwo się zapisać na serwis. W każdym momencie mogą Państwo powiedzieć 'anuluj zapis', a w takim wypadku wszystkie zapisane informację zostaną usunięte. Wszystkie zapisane informację zostaną podane na końcu i będzie można je poprawić, jeżeli źle zrozumiała Państwa odpowiedzi. Na początku chciałabym się zapytać, na jaką usługę/usługi chcieliby Państwo się zapisać?"
+
 PREPARED_TEXT = {
     "PRESENT PROMPTS": "Możesz mnie poprosić o zapisanie na jedną lub więcej z oferowanych przez nas usług, lub o przekazanie wiadomości/pytania dla konsultanta. Aby powtórzyć moją ostatnią wypowiedź w jakimkolwiek momencie rozmowy, proszę powiedzieć 'powtórz'. Jak mogę pomóc?",
     "GREET CLIENT": "Cześć, to jest automatyczna sekretarka serwisu Lexusa, Toyoty. W czym mógłabym Państwu dzisiaj pomóc?",
+    "CANCEL": "Czy na pewno chcą państwo anulować {flow}?",
     "ZAPIS": [
-        ("ab", "zapis", [cancel, repeat]),
-        ("Dziękuję. Chciałabym się zapytać, czy Państwo już byli u nas w serwisie? Proszę odpowiedzieć 'tak' lub 'nie'.", "nowy_klient", [cancel, repeat]),
-        ("Dziękuję. Poprosiłabym Państwa o imię i nazwisko.", "imie_nazwisko", [cancel, repeat]),
-        ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", [cancel, repeat]),
-        ("Dziękuję. Proszę powoli przeliterować numer rejestracyjny samochodu.", "numer_rejestracyjny", [cancel, repeat]),
-        ("Dziękuję. Prosze podać markę samochodu.", "marka", [cancel, repeat]),
-        ("Dziękuję. Proszę podać model samochodu.", "model", [cancel, repeat]),
-        ("Dziękuję. Proszę podać rok produkcji samochodu.", "rok_produkcji", [cancel, repeat]),
-        ("Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, proszę powiedzieć koniec.", "dodatkowe_informacje", [cancel, repeat]),
+        ("Zrozumiałam, że chcą Państwo się zapisać na serwis. W każdym momencie mogą Państwo powiedzieć 'anuluj zapis', a w takim wypadku wszystkie zapisane informację zostaną usunięte. Wszystkie zapisane informację zostaną podane na końcu i będzie można je poprawić, jeżeli źle zrozumiała Państwa odpowiedzi. Na początku chciałabym się zapytać, na jaką usługę/usługi chcieliby Państwo się zapisać?", "zapis", [cancel]),
+        ("Dziękuję. Chciałabym się zapytać, czy Państwo już byli u nas w serwisie? Proszę odpowiedzieć 'tak' lub 'nie'.", "nowy_klient", [cancel]),
+        ("Dziękuję. Poprosiłabym Państwa o imię i nazwisko.", "imie_nazwisko", [cancel]),
+        ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", [cancel]),
+        ("Dziękuję. Proszę powoli przeliterować numer rejestracyjny samochodu.", "numer_rejestracyjny", [cancel]),
+        ("Dziękuję. Prosze podać markę samochodu.", "marka", [cancel]),
+        ("Dziękuję. Proszę podać model samochodu.", "model", [cancel]),
+        ("Dziękuję. Proszę podać rok produkcji samochodu.", "rok_produkcji", [cancel]),
+        ("Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, proszę powiedzieć koniec.", "dodatkowe_informacje", [cancel]),
         ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec' jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
         Cel zapisu. {zapis}.
+        Nowy klient. {nowy_klient}.
         Imię i nazwisko. {imie_nazwisko}.
         Numer telefonu. {numer_telefonu}
         Numer rejestracyjny samochodu. {numer_rejestracyjny}
         Marka samochodu. {marka}
         Model samochodu. {model}
         Rok produkcji samochodu. {rok_produkcji}
-        Dodatkowe informacje. {dodatkowe_informacje}""", "", [cancel, repeat, end]),
-        ("Dziękuje. Państwo zostali zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo smsa z potwierdzeniem wizity. Czy mógłbym w czymś jeszcze pomóc?", "", [repeat]),
+        Dodatkowe informacje. {dodatkowe_informacje}""", "", [cancel, end]),
+        ("Dziękuje. Państwo zostali zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo smsa z potwierdzeniem wizity. Czy mógłbym w czymś jeszcze pomóc?", "", []),
         9,
     ],
     "POPRAWA ZAPISU": [
@@ -48,7 +50,7 @@ PREPARED_TEXT = {
         Marka samochodu: {marka}
         Model samochodu: {model}
         Rok produkcji samochodu: {rok_produkcji}
-        Dodatkowe informacje: {dodatkowe_informacje}""", "", [cancel, repeat]),
+        Dodatkowe informacje: {dodatkowe_informacje}""", "", [cancel]),
     ],
     "WIADOMOŚĆ": []
 }

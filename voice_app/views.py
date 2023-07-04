@@ -12,7 +12,10 @@ from . import const
 from django.conf import settings
 from . import funcs
 
+
 openai.api_key = settings.OPENAI_API_KEY
+
+request_validator = RequestValidator(settings.TWILIO_AUTH_TOKEN)
 
 @require_POST
 @csrf_exempt
@@ -40,7 +43,7 @@ def gather_answer(request: HttpRequest, st: str = "auto"):
     elif "CURRENT_FLOW" in request.session and \
     "CANCEL" == request.session["CURRENT_FLOW"].split(" ")[0]:
         flow = request.session["CURRENT_FLOW"].split(" ")[1]
-        vr.say(f"Czy na pewno chcą państwo anulować {flow}?", voice="alice", language="pl-PL")
+        vr.say(const.PREPARED_TEXT["CANCEL"].format(flow=flow), voice="alice", language="pl-PL")
 
     if "REPEAT" in request.session and \
     request.session["REPEAT"]:
@@ -130,7 +133,7 @@ def transfer_to_flow(request: HttpRequest):
     ans = funcs.repeat(request, vr)
     if ans:
         return HttpResponse(str(vr))
-    
+
     ### CLASSIFY TOPIC OF CONVERSATION IF START ###
     if request.session["CURRENT_FLOW"] == "START":
         request.session["CURRENT_FLOW"] = openai.Completion.create(
@@ -177,7 +180,7 @@ def transfer_to_flow(request: HttpRequest):
         request.session['CURRENT_FLOW'] = request.session['CURRENT_FLOW'].split(" ")[1]
         vr.say("Anulacja zapisu została odwołana. Powtórzę moją ostatnią wypowiedź.", voice="alice", language="pl-PL")
         request.session["NOT CANCEL"] = True
-    
+
     print("here")
     print(dict(request.session))
     ### FLOWS ###
@@ -198,6 +201,7 @@ def transfer_to_flow(request: HttpRequest):
             request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
                 request.session["CURRENT_FLOW_NUM"]
             ][0].format(**request.session["CLIENT_DATA"])
+            print(request.session["TEXT"])
         else:
             request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
                 request.session["CURRENT_FLOW_NUM"]
