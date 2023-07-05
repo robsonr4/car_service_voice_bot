@@ -137,7 +137,7 @@ def transfer_to_flow(request: HttpRequest):
     ### CLASSIFY TOPIC OF CONVERSATION IF START ###
     if request.session["CURRENT_FLOW"] == "START":
         request.session["CURRENT_FLOW"] = openai.Completion.create(
-            engine="davinci",
+            engine="text-davinci-003",
             prompt=funcs.flow_prompt(request),
             temperature=0.2,
             stop="\n",
@@ -166,8 +166,6 @@ def transfer_to_flow(request: HttpRequest):
             "dodatkowe_informacje": "",
             "wiadomość_done": False,
             "wiadomość": "",
-            "pytanie_done": False,
-            "pytanie": "",
             "nowy_klient": False
         }
         request.session["REPEAT"] = False
@@ -231,7 +229,10 @@ def transfer_to_flow(request: HttpRequest):
         request.session["CURRENT_FLOW_NUM"] += 1
         vr.redirect("/gather_answer/", method="POST")
 
-
+    elif request.session["CURRENT_FLOW"] == "KONIEC":
+        vr.say("Dziękuję za rozmowę. Miłego dnia.", voice="alice", language="pl-PL")
+        vr.hangup()
+        return HttpResponse(str(vr))
 
     # vr.say(answer.choices[0].message["content"], voice="alice", language="pl-PL") # type: ignore
     # request.session["CHAT"].append({"role": "assistant", "content": answer.choices[0].message["content"]}) # type: ignore

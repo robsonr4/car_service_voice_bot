@@ -103,18 +103,18 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict):
 
 def check_with_db(answer, possible_answers):
     possible_answers = Car.objects.filter().values_list(possible_answers, flat=True).distinct()
+    print(possible_answers)
     possible_answers = [str(x) for x in possible_answers]
     prompt = POSSIBILITIES.format(
         possibilities=", ".join(possible_answers),
         speech=answer)
+    print(prompt)
     ans = openai.Completion.create(
             engine="text-davinci-003",
             prompt=prompt,
             temperature=0.2,
             stop="\n",
             max_tokens=150,
-            n=4,
-            best_of=4
         )
     matched_ans = ans.choices[0].text.strip()
 
@@ -174,10 +174,24 @@ POSSIBILITIES: {possibilities};
 SPEECH: {speech};
 MATCH: """
 
+NOT_MARKA = """Przepraszam ale podana marka -  {marka} - nie istnieje w naszej bazie, lub nie jest 
+               obsługiwana przez nasz serwis. Czy mogłabym Państwa poprosić o powtórzenie odpowiedzi?"""
 
+NOT_3_MARKA = """Przepraszam ale podana marka - {marka} - nie istnieje w naszej bazie, lub nie jest 
+                 obsługiwana przez nasz serwis. Przez ilość powtórzeń rozmowa zostanie zakończona. 
+                 W razie potrzeby, proszę zostawić wiadomość. Życzę miłego dnia."""
 
+NOT_MODEL = """Przepraszam ale podany model -  {model} - dla marki {marka} nie istnieje w naszej bazie. 
+               Czy mogłabym Państwa poprosić o powtórzenie odpowiedzi?"""
 
+NOT_3_MODEL = """Przepraszam ale podany model -  {model} - dla marki {marka} nie istnieje w naszej bazie. 
+                 Zostaną Państwo przekazani konsultantowi naszego serwisu, proszę czekać."""
 
+NOT_ROK = """Przepraszam ale podany rok produkcji-  {rok_produkcji} - dla marki {marka} i modelu {model} 
+             nie istnieje w naszej bazie. Czy mogłabym Państwa poprosić o powtórzenie odpowiedzi?"""
+
+NOT_3_ROK = """Przepraszam ale podany rok produkcji- {rok_produkcji} - dla marki {marka} i modelu {model} 
+               nie istnieje w naszej bazie. Zostaną Państwo przekazani konsultantowi naszego serwisu, proszę czekać."""
 
 # request.session["CHAT"].append(const.PROMPTS["PRZEGLAD"])
         # answer = openai.ChatCompletion.create(

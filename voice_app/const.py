@@ -15,44 +15,64 @@ PROMPTS = {
 }
 
 PREPARED_TEXT = {
-    "PRESENT PROMPTS": "Możesz mnie poprosić o zapisanie na jedną lub więcej z oferowanych przez nas usług, lub o przekazanie wiadomości/pytania dla konsultanta. Aby powtórzyć moją ostatnią wypowiedź w jakimkolwiek momencie rozmowy, proszę powiedzieć 'powtórz'. Jak mogę pomóc?",
-    "GREET CLIENT": "Cześć, to jest automatyczna sekretarka serwisu Lexusa, Toyoty. W czym mógłabym Państwu dzisiaj pomóc?",
+    "PRESENT PROMPTS": """Możesz mnie poprosić o zapisanie na jedną lub więcej z oferowanych przez nas usług, 
+        lub o przekazanie wiadomości albo pytania dla konsultanta. Aby powtórzyć moją 
+        ostatnią wypowiedź w jakimkolwiek momencie rozmowy, możesz powiedzieć 'powtórz'. Jak mogę pomóc?""",
+    "GREET CLIENT": """Cześć, to jest automatyczna sekretarka serwisu Lexusa, Toyoty. 
+        W czym mogłabym Państwu dzisiaj pomóc?""",
     "CANCEL": "Czy na pewno chcą państwo anulować {flow}?",
     "ZAPIS": [
-        ("Zrozumiałam, że chcą Państwo się zapisać na serwis. W każdym momencie mogą Państwo powiedzieć 'anuluj zapis', a w takim wypadku wszystkie zapisane informację zostaną usunięte. Wszystkie zapisane informację zostaną podane na końcu i będzie można je poprawić, jeżeli źle zrozumiała Państwa odpowiedzi. Na początku chciałabym się zapytać, na jaką usługę/usługi chcieliby Państwo się zapisać?", "zapis", [cancel]),
-        ("Dziękuję. Chciałabym się zapytać, czy Państwo już byli u nas w serwisie? Proszę odpowiedzieć 'tak' lub 'nie'.", "nowy_klient", [cancel]),
+        ("""Zrozumiałam, że chcą Państwo się zapisać na serwis. W każdym momencie mogą Państwo 
+            powiedzieć 'anuluj zapis', a w takim wypadku wszystkie zapisane informacje zostaną 
+            usunięte. Wszystkie zapisane informacje zostaną podane na końcu i będzie można je 
+            poprawić, jeżeli źle zrozumiałam Państwa odpowiedzi. Na początku chciałabym się 
+            zapytać, na jaką usługę/usługi chcieliby Państwo się zapisać?""", "zapis", [cancel]),
+        ("""Dziękuję. Chciałabym się zapytać, czy Państwo już byli u nas w serwisie? Proszę 
+            odpowiedzieć 'tak' lub 'nie'.""", "nowy_klient", [cancel]),
         ("Dziękuję. Poprosiłabym Państwa o imię i nazwisko.", "imie_nazwisko", [cancel]),
         ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", [cancel]),
         ("Dziękuję. Proszę powoli przeliterować numer rejestracyjny samochodu.", "numer_rejestracyjny", [cancel]),
         ("Dziękuję. Prosze podać markę samochodu.", "marka", [cancel]),
         ("Dziękuję. Proszę podać model samochodu.", "model", [cancel]),
         ("Dziękuję. Proszę podać rok produkcji samochodu.", "rok_produkcji", [cancel]),
-        ("Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, proszę powiedzieć koniec.", "dodatkowe_informacje", [cancel]),
-        ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec' jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
-        Cel zapisu. {zapis}.
-        Nowy klient. {nowy_klient}.
-        Imię i nazwisko. {imie_nazwisko}.
-        Numer telefonu. {numer_telefonu}
-        Numer rejestracyjny samochodu. {numer_rejestracyjny}
-        Marka samochodu. {marka}
-        Model samochodu. {model}
-        Rok produkcji samochodu. {rok_produkcji}
-        Dodatkowe informacje. {dodatkowe_informacje}""", "", [cancel, end]),
-        ("Dziękuje. Państwo zostali zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo smsa z potwierdzeniem wizity. Czy mógłbym w czymś jeszcze pomóc?", "", []),
+        ("""Dziękuję. Proszę podać dodatkowe informacje, jeżeli takie są. W innym wypadku, 
+            proszę powiedzieć koniec.", "dodatkowe_informacje""", [cancel]),
+        ("""Dziękuję, powtórzę wszystkie informacje, które zrozumiałam. Proszę powiedzieć 'koniec' 
+            jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli chcą Państwo poprawić zapisane informacje.
+            Cel zapisu. {zapis}.
+            Nowy klient. {nowy_klient}.
+            Imię i nazwisko. {imie_nazwisko}.
+            Numer telefonu. {numer_telefonu}
+            Numer rejestracyjny samochodu. {numer_rejestracyjny}
+            Marka samochodu. {marka}
+            Model samochodu. {model}
+            Rok produkcji samochodu. {rok_produkcji}
+            Dodatkowe informacje. {dodatkowe_informacje}""", "", [cancel, end]),
+        ("""Dziękuję. Zostali Państwo zapisani na przegląd. Po zakończeniu rozmowy dostaną państwo 
+            smsa z potwierdzeniem wizyty. Czy mogłabym w czymś jeszcze pomóc? Aby powtórzyć opcję, 
+            proszę powiedzieć 'opcje'.""", "", []),
         9,
     ],
-    "POPRAWA ZAPISU": [
-        ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec' jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
-        Cel zapisu: {zapis}
-        Imię i nazwisko: {imie_nazwisko}
-        Numer telefonu: {numer_telefonu}
-        Numer rejestracyjny samochodu: {numer_rejestracyjny}
-        Marka samochodu: {marka}
-        Model samochodu: {model}
-        Rok produkcji samochodu: {rok_produkcji}
-        Dodatkowe informacje: {dodatkowe_informacje}""", "", [cancel]),
+    "CORRECT": """Oczywiście, proszę powiedzieć powoli co mam poprawić, a następnie 
+        powtórzę wszystko co zrozumiałam.""",
+    "WIADOMOŚĆ": [
+        ("""Zrozumiałam, że chcą Państwo zostawić wiadomość konsultantowi. W każdym momencie mogą 
+            Państwo powiedzieć 'anuluj wiadomość', a w takim wypadku wszystkie zapisane informację 
+            zostaną usunięte. Wszystkie zapisane informację zostaną podane na końcu i będzie można 
+            je poprawić, jeżeli źle zrozumiałam Państwa odpowiedzi. Na początku chciałabym poprosić 
+            Państwa o imię i nazwisko.""", "imie_nazwisko", [cancel]),
+        ("Dziękuję. Proszę powiedzieć, jaką wiadomość chcą Państwo zostawić?", "wiadomość", [cancel]),
+        ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", [cancel]),
+        ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec' 
+            jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
+            Imie i nazwisko. {imie_nazwisko}.
+            Wiadomość. {wiadomość}.
+            Numer telefonu. {numer_telefonu}""", "", [cancel, end]),
+        ("""Dziękuje. Państwa wiadomość została przekazana konsultantowi. Po zakończeniu rozmowy 
+            dostaną Państwo smsa z potwierdzeniem wizyty. Czy mogłabym w czymś jeszcze pomóc? Aby 
+            powtórzyć opcję, proszę powiedzieć 'opcje'.""", "", []),
+        3,
     ],
-    "WIADOMOŚĆ": []
 }
 
 FLOWS = {

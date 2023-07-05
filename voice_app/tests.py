@@ -13,6 +13,16 @@ from unittest import mock
 import pytest
 from . import const
 
+@pytest.fixture(scope='session')
+def django_db_setup():
+    """Avoid creating/setting up the test database"""
+    pass
+
+@pytest.fixture
+def db_access_without_rollback_and_truncate(request, django_db_setup, django_db_blocker):
+    django_db_blocker.unblock()
+    request.addfinalizer(django_db_blocker.restore)
+
 @pytest.mark.django_db
 class TwilioPhoneCall:
 
@@ -81,6 +91,7 @@ def phone_call(client: Client) -> TwilioPhoneCall:
         from_number = '123456789',
     )
 
+@pytest.mark.django_db
 def test_repeat(
     phone_call: TwilioPhoneCall,
     db: db
@@ -107,7 +118,7 @@ def test_repeat(
     content = response.content.decode()
     assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
 
-
+@pytest.mark.django_db
 def test_zapis_client_1(
     phone_call: TwilioPhoneCall,
     db: db
@@ -177,3 +188,13 @@ Powtórzenie_informacji: koniec """
         rok_produkcji="2001",
         dodatkowe_informacje="",
     ) in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'koniec' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][10][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'To wszystko' })
+    content = response.content.decode()
+    assert "Hangup" in content
+
+
