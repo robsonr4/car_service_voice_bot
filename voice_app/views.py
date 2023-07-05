@@ -65,6 +65,8 @@ def gather_answer(request: HttpRequest, st: str = "auto"):
 def present_prompts(request: HttpRequest):
     vr = VoiceResponse()
     request.session["TEXT"] = const.PREPARED_TEXT["PRESENT PROMPTS"]
+    if "CURRENT_FLOW" not in request.session:
+        request.session["CURRENT_FLOW"] = ""
     vr.redirect("/gather_answer/5/", method="POST")
     return HttpResponse(str(vr))
 
@@ -73,6 +75,8 @@ def present_prompts(request: HttpRequest):
 def transfer_to_flow(request: HttpRequest):
     """ Transfer the caller to particular conversation flow.
     """
+    print("### TRANSFER TO FLOW ###")
+    print(request.session["CURRENT_FLOW"])
     ### ADD ALL VARIABLES TO SESSION ###
     if "CHAT" not in request.session or \
     "CURRENT_FLOW" not in request.session or \
@@ -127,7 +131,6 @@ def transfer_to_flow(request: HttpRequest):
     request.session["CHAT"].append(
         {"role": "user", "content": request.POST.get('SpeechResult', '')}
     )
-    print(request.session["CHAT"][-1]["content"])
 
     ### CHECK IF USER WANTS TO REPEAT ###
     ans = funcs.repeat(request, vr)
@@ -174,16 +177,11 @@ def transfer_to_flow(request: HttpRequest):
         return HttpResponse(str(vr))
     elif "CANCEL" in request.session["CURRENT_FLOW"].split(" ")[0] and \
     set(("nie",)).issubset(set(request.session["CHAT"][-1]["content"].lower().split(" "))):
-        print("here nie")
         request.session['CURRENT_FLOW'] = request.session['CURRENT_FLOW'].split(" ")[1]
         vr.say("Anulacja zapisu została odwołana. Powtórzę moją ostatnią wypowiedź.", voice="alice", language="pl-PL")
         request.session["NOT CANCEL"] = True
-
-    print("here")
-    print(dict(request.session))
     ### FLOWS ###
-    if request.session["CURRENT_FLOW"] == "ZAPIS":
-
+    if request.session["CURRENT_FLOW"] in ["ZAPIS", "WIADOMOŚĆ"]:
         ### SAVE ANSWER ###
         if "NOT CANCEL" in request.session:
             del request.session["NOT CANCEL"]
@@ -195,47 +193,44 @@ def transfer_to_flow(request: HttpRequest):
             )
 
         ### ADD TEXT TO BE SAID ###
-        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-1]:
-            request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
+        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][-1]:
+            request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
                 request.session["CURRENT_FLOW_NUM"]
             ][0].format(**request.session["CLIENT_DATA"])
             print(request.session["TEXT"])
         else:
-            request.session["TEXT"] = const.PREPARED_TEXT["ZAPIS"][
+            request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
                 request.session["CURRENT_FLOW_NUM"]
             ][0]
 
+        ### GO THROUGH ALL FUNCS ###
+        for func in const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][request.session["CURRENT_FLOW_NUM"]][2]:
+            ans = func(request, vr)
+            if ans:
+                return HttpResponse(str(vr))
+
         ### CHECK IF THIS IS THE END ###
-        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-1] + 1:
+        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][-1] + 1:
             request.session["CURRENT_FLOW"] = "START"
             request.session["CURRENT_FLOW_NUM"] = 0
-
-
-
         # # to chyba do wywalenia
         # if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT["ZAPIS"][-2] and \
         # "koniec" in request.session["CHAT"][-1]["content"].lower().split(" "):
         #     ### CHECK IF THIS IS THE END OF FLOW ###
         #     request.session["CURRENT_FLOW"] = "START"
         #     request.session["CURRENT_FLOW_NUM"] = 0
-
-        ### GO THROUGH ALL FUNCS ###
-        for func in const.PREPARED_TEXT["ZAPIS"][request.session["CURRENT_FLOW_NUM"]][2]:
-            ans = func(request, vr)
-            if ans:
-                return HttpResponse(str(vr))
-        print("here again")
-
         request.session["CURRENT_FLOW_NUM"] += 1
         vr.redirect("/gather_answer/", method="POST")
-
+    elif request.session["CURRENT_FLOW"] == "OPCJE":
+        vr.redirect(reverse("present_prompts"), method="POST")
+        request.session["CURRENT_FLOW"] = "START"
+        return HttpResponse(str(vr))
     elif request.session["CURRENT_FLOW"] == "KONIEC":
         vr.say("Dziękuję za rozmowę. Miłego dnia.", voice="alice", language="pl-PL")
         vr.hangup()
         return HttpResponse(str(vr))
 
+
     # vr.say(answer.choices[0].message["content"], voice="alice", language="pl-PL") # type: ignore
     # request.session["CHAT"].append({"role": "assistant", "content": answer.choices[0].message["content"]}) # type: ignore
-    print(request.session["CHAT"])
-    print(request.session["CLIENT_DATA"])
     return HttpResponse(str(vr))

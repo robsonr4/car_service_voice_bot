@@ -1,95 +1,99 @@
 
-# movies/tests/twilio_phone_call.py
 from __future__ import annotations
-from typing import Optional, Iterator, Dict, Any
-
-from django.http import HttpResponse
-from xml.etree import ElementTree
-from django.test.client import Client
 
 # movies/tests/twilio_phone_call.py
-from django.urls import reverse
-from unittest import mock
 import pytest
 from . import const
-
-@pytest.fixture(scope='session')
-def django_db_setup():
-    """Avoid creating/setting up the test database"""
-    pass
-
-@pytest.fixture
-def db_access_without_rollback_and_truncate(request, django_db_setup, django_db_blocker):
-    django_db_blocker.unblock()
-    request.addfinalizer(django_db_blocker.restore)
+from .test_funcs import TwilioPhoneCall, phone_call, django_db_setup, db_access_without_rollback_and_truncate
 
 @pytest.mark.django_db
-class TwilioPhoneCall:
+def test_options(
+    phone_call: TwilioPhoneCall,
+    db: db
+) -> None:
+    """ Test if options work
 
-    def __init__(
-        self,
-        start_url: str,
-        call_sid: str,
-        from_number: str,
-        client: Client,
-    ) -> None:
-        self.next_url: Optional[str] = start_url
-        self.call_sid = call_sid
-        self.from_number = from_number
-        self.client = client
-        self.call_ended = False
-        self._current_twiml_response: Optional[Iterator[Optional[HttpResponse]]] = None
+CLIENT
+------
+zapis: Wymiana oleju
+nowy_klient: Tak
+imie_nazwisko: Jan Kowalski
+numer_telefonu: 123456789
+numer_rejestracyjny: WA7959E
+marka: Toyota
+model: RAV4
+rok_produkcji: 2001
+Informacje_dobrze: koniec
+Powtórzenie_informacji: Zgadza się
+"""
+    response = phone_call.initiate()
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
 
-    def _make_request(self, payload: Dict[str, Any] = {}) -> Optional[HttpResponse]:
-        assert self.next_url is not None
-        with mock.patch('voice_app.views.request_validator', autospec=True) as gather_answer_mock:
-            gather_answer_mock.validate.return_value = True
-            response = self.client.post(self.next_url, {
-                'CallSid': self.call_sid,
-                'From': self.from_number,
-                **payload,
-            }, HTTP_X_TWILIO_SIGNATURE='signature')
+    response = phone_call._make_request({ 'SpeechResult': 'Zapis na wymiane oleju' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][0][0] in content
 
-        self._current_twiml_response = self._process_twiml_response(response)
-        return next(self._current_twiml_response)
+    response = phone_call._make_request({ 'SpeechResult': 'Wymiana oleju' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][1][0] in content
 
-    def initiate(self) -> HttpResponse:
-        return self._make_request()
+    response = phone_call._make_request({ 'SpeechResult': 'Tak' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][2][0] in content
 
-    def _process_twiml_response(self, response: HttpResponse) -> Iterator[Optional[HttpResponse]]:
-        if not 200 <= response.status_code < 300:
-            self.call_ended = True
-            self.next_url = None
-            yield response
-            return
+    response = phone_call._make_request({ 'SpeechResult': 'Jan Kowalski' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][3][0] in content
 
-        # Find the next action to perform
-        tree = ElementTree.fromstring(response.content.decode())
-        for element in tree:
-            if element.tag == 'Hangup':
-                self.call_ended = True
-                yield response
+    response = phone_call._make_request({ 'SpeechResult': '123456789' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][4][0] in content
 
-            elif element.tag == 'Redirect':
-                if element.text is None:
-                    # An empty <Redirect> implies current URL.
-                    self.next_url = response.wsgi_request.get_full_path()
-                else:
-                    self.next_url = element.text
-                yield self._make_request()
+    response = phone_call._make_request({ 'SpeechResult': 'WA7959E' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][5][0] in content
 
-            elif element.tag == 'Gather':
-                self.next_url = element.get('action')
-                yield response
+    response = phone_call._make_request({ 'SpeechResult': 'Toyota' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][6][0] in content
 
-@pytest.fixture
-def phone_call(client: Client) -> TwilioPhoneCall:
-    return TwilioPhoneCall(
-        start_url = reverse('gather_answer'),
-        client = client,
-        call_sid = 'call-sid-1',
-        from_number = '123456789',
-    )
+    response = phone_call._make_request({ 'SpeechResult': 'RAV4' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][7][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': '2001' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][8][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'koniec' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
+        zapis="Wymiana oleju",
+        nowy_klient=False,
+        imie_nazwisko="Jan Kowalski",
+        numer_telefonu="123456789",
+        numer_rejestracyjny="WA7959E",
+        marka="toyota",
+        model="RAV4",
+        rok_produkcji="2001",
+        dodatkowe_informacje="",
+    ) in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Zgadza się' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][10][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'O co mogłabym jeszczę poprosić?' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Koniec' })
+    content = response.content.decode()
+    assert "Hangup" in content
+
+
+
 
 @pytest.mark.django_db
 def test_repeat(
@@ -99,6 +103,7 @@ def test_repeat(
     """ Test if repeat works """
     response = phone_call.initiate()
     content = response.content.decode()
+    assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
     response = phone_call._make_request({ 'SpeechResult': 'Chciałbym się zapisać na wymianę oleju' })
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][0][0] in content
@@ -135,9 +140,11 @@ numer_rejestracyjny: WA7959E
 marka: Toyota
 model: RAV4
 rok_produkcji: 2001
-dodatkowe_informacje: koniec
+Informacje_dobrze: koniec
 Powtórzenie_informacji: koniec """
     response = phone_call.initiate()
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
 
     response = phone_call._make_request({ 'SpeechResult': 'Zapis na wymiane oleju' })
     content = response.content.decode()
@@ -197,4 +204,171 @@ Powtórzenie_informacji: koniec """
     content = response.content.decode()
     assert "Hangup" in content
 
+@pytest.mark.django_db
+def test_wiadomosci_client_1(
+    phone_call: TwilioPhoneCall,
+    db: db
+    ) -> None:
+    """ Test if wiadomosci works
+
+CLIENT
+------
+imie_nazwisko: Jan Kowalski
+wiadomość: Czy mogę przyjechać wcześniej na wymianę świec?
+numer_telefonu: 123456789
+Informacje_dobrze: Koniec """
+    response = phone_call.initiate()
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
+
+    response = phone_call._make_request({
+        'SpeechResult': '''Chciałbym się zapytać Pani Pauliny czy mógłbymprzyjechać wcześniej na wymianę świec?'''
+    })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][0][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Jan Kowalski' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][1][0] in content
+
+    response = phone_call._make_request({
+        'SpeechResult': 'Czy mogę przyjechać wcześniej na wymianę świec?'
+    })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][2][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': '123456789' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
+        imie_nazwisko="Jan Kowalski",
+        wiadomość="Czy mogę przyjechać wcześniej na wymianę świec?",
+        numer_telefonu="123456789",
+    ) in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Koniec' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][4][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'To będzię na tyle' })
+    content = response.content.decode()
+    assert "Hangup" in content
+
+@pytest.mark.django_db
+def test_wiadomosci_zapisu_client_1(
+    phone_call: TwilioPhoneCall,
+    db: db
+    ) -> None:
+    """ Test if wiadomosci i zapisu w jednej konwersacji
+
+CLIENT
+------
+zapis: Przegląd auta
+nowy_klient: Nie
+imie_nazwisko: Robert Falkowski
+numer_telefonu: 728898380
+numer_rejestracyjny: WA7959E
+marka: Lexus
+model: IS200
+rok_produkcji: 2007
+dodatkowe_informacje: koniec
+Informacje_dobrze: koniec
+imie_nazwisko: Robert Falkowski
+wiadomość:
+    Chciałbym się zapytać czy mógłbym przy okazji
+    zostawienia mojego lexusa odebrać rx400,
+    który jest u Państwa na serwisie?
+numer_telefonu: 728898380
+Informacje_dobrze: koniec """
+
+    response = phone_call.initiate()
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["PRESENT PROMPTS"] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Przegląd auta' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][0][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Przegląd auta' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][1][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Nie' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][2][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Robert Falkowski' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][3][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': '728898380' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][4][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'WA7958E' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][5][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'LEXUS' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][6][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'IS200' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][7][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': '2007' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][8][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'koniec' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
+        zapis="Przegląd auta",
+        nowy_klient=True,
+        imie_nazwisko="Robert Falkowski",
+        numer_telefonu="728898380",
+        numer_rejestracyjny="WA7959E",
+        marka="Lexus",
+        model="IS200",
+        rok_produkcji="2007",
+        dodatkowe_informacje="",
+    ) in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'koniec' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["ZAPIS"][10][0] in content
+
+    response = phone_call._make_request({
+        'SpeechResult': '''Chciałbym się zapytać czy mógłbym przy okazji
+                           zostawienia mojego lexusa odebrać rx400,
+                           który jest u Państwa na serwisie?'''
+    })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][0][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'Robert Falkowski' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][1][0] in content
+
+    response = phone_call._make_request({
+        'SpeechResult': "Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?"
+    })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][2][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': '728898380' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
+        imie_nazwisko="Robert Falkowski",
+        wiadomość="Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?",
+        numer_telefonu="728898380",
+    ) in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'koniec' })
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][4][0] in content
+
+    response = phone_call._make_request({ 'SpeechResult': 'to tyle' })
+    content = response.content.decode()
+    assert "Hangup" in content
 
