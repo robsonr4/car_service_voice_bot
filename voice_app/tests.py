@@ -269,7 +269,7 @@ numer_telefonu: 728898380
 numer_rejestracyjny: WA7959E
 marka: Lexus
 model: IS200
-rok_produkcji: 2007
+rok_produkcji: 2003
 dodatkowe_informacje: koniec
 Informacje_dobrze: koniec
 imie_nazwisko: Robert Falkowski
@@ -316,7 +316,7 @@ Informacje_dobrze: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][7][0] in content
 
-    response = phone_call._make_request({ 'SpeechResult': '2007' })
+    response = phone_call._make_request({ 'SpeechResult': '2003' })
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][8][0] in content
 
@@ -327,10 +327,10 @@ Informacje_dobrze: koniec """
         nowy_klient=True,
         imie_nazwisko="Robert Falkowski",
         numer_telefonu="728898380",
-        numer_rejestracyjny="WA7959E",
-        marka="Lexus",
-        model="IS200",
-        rok_produkcji="2007",
+        numer_rejestracyjny="WA7958E",
+        marka="lexus",
+        model="IS 200",
+        rok_produkcji="2003",
         dodatkowe_informacje="",
     ) in content
 
@@ -339,9 +339,7 @@ Informacje_dobrze: koniec """
     assert const.PREPARED_TEXT["ZAPIS"][10][0] in content
 
     response = phone_call._make_request({
-        'SpeechResult': '''Chciałbym się zapytać czy mógłbym przy okazji
-                           zostawienia mojego lexusa odebrać rx400,
-                           który jest u Państwa na serwisie?'''
+        'SpeechResult': '''Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?'''
     })
     content = response.content.decode()
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][0][0] in content

@@ -139,6 +139,7 @@ def transfer_to_flow(request: HttpRequest):
 
     ### CLASSIFY TOPIC OF CONVERSATION IF START ###
     if request.session["CURRENT_FLOW"] == "START":
+        print(funcs.flow_prompt(request))
         request.session["CURRENT_FLOW"] = openai.Completion.create(
             engine="text-davinci-003",
             prompt=funcs.flow_prompt(request),
@@ -147,6 +148,7 @@ def transfer_to_flow(request: HttpRequest):
             max_tokens=150,
             n=1,
         ).choices[0].text.strip() # type: ignore
+        print(request.session["CURRENT_FLOW"])
         request.session["CHAT"].insert(0, const.PROMPTS["GENERAL"])
         request.session["CURRENT_FLOW_NUM"] = 0
 
@@ -197,7 +199,6 @@ def transfer_to_flow(request: HttpRequest):
             request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
                 request.session["CURRENT_FLOW_NUM"]
             ][0].format(**request.session["CLIENT_DATA"])
-            print(request.session["TEXT"])
         else:
             request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
                 request.session["CURRENT_FLOW_NUM"]

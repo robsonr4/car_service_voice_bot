@@ -74,29 +74,32 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict):
         request.session["CLIENT_DATA"][var_name] = True
         return True
     elif var_name in str_vars:
-        request.session["CLIENT_DATA"][var_name] = request.session["CHAT"][-1]["content"]
+        request.session["CLIENT_DATA"][var_name] = request.session["CHAT"][-1]["content"].strip()
         return True
     elif var_name in spec_vars:
         if request.session["CLIENT_DATA"]["marka"] == "":
-            ans = check_with_db(request.session["CHAT"][-1]["content"], "marka")
-            request.session["CLIENT_DATA"][var_name] = ans
+            ans = check_with_db(request.session["CHAT"][-1]["content"], "marka", {})
+            request.session["CLIENT_DATA"][var_name] = ans.lower()
         elif request.session["CLIENT_DATA"]["model"] == "":
-            ans = check_with_db(request.session["CHAT"][-1]["content"], "model")
+            filt = {"marka": request.session["CLIENT_DATA"]["marka"]}
+            ans = check_with_db(request.session["CHAT"][-1]["content"], "model", filt)
             request.session["CLIENT_DATA"][var_name] = ans
         else:
-            ans = check_with_db(request.session["CHAT"][-1]["content"], "rok_produkcji")
+            filt = {"marka": request.session["CLIENT_DATA"]["marka"], "model": request.session["CLIENT_DATA"]["model"]}
+            ans = check_with_db(request.session["CHAT"][-1]["content"], "rok_produkcji", filt)
             request.session["CLIENT_DATA"][var_name] = ans
         return True
 
 
     return request.session["CLIENT_DATA"]
 
-def check_with_db(answer, possible_answers):
-    possible_answers = Car.objects.filter().values_list(possible_answers, flat=True).distinct()
+def check_with_db(answer, possible_answers, filt):
+    possible_answers = Car.objects.filter(**filt).values_list(possible_answers, flat=True).distinct()
     possible_answers = [str(x) for x in possible_answers]
     prompt = POSSIBILITIES.format(
         possibilities=", ".join(possible_answers),
         speech=answer)
+    print(prompt)
     ans = openai.Completion.create(
             engine="text-davinci-003",
             prompt=prompt,
@@ -105,6 +108,7 @@ def check_with_db(answer, possible_answers):
             max_tokens=150,
         )
     matched_ans = ans.choices[0].text.strip()
+    print(matched_ans)
 
     return matched_ans
 
@@ -139,6 +143,8 @@ KONWERSACJA: koniec
 TEMAT: KONIEC
 KONWERSACJA: Za ile będziesz?
 TEMAT: INNE
+KONWERSACJA: Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?
+TEMAT: WIADOMOŚĆ
 KONWERSACJA: """
 
     prompt += request.session["CHAT"][-1]["content"]
@@ -152,7 +158,7 @@ KONWERSACJA: """
 POSSIBILITIES = """ Select which word from POSSIBILITIES resembles the SPEECH the most, if you think that none of them do or there is more than 1 possibility, write 'again':
 POSSIBILITIES: lexus, toyota;
 SPEECH: Lexus;
-MATCH: lexus
+MATCH: Lexus
 POSSIBILITIES: RAV4, Corolla, Yaris, Aygo;
 SPEECH: Raf cztery;
 MATCH: RAV4
