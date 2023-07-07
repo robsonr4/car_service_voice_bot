@@ -71,9 +71,9 @@ Powtórzenie_informacji: Zgadza się
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
         zapis="Wymiana oleju",
-        nowy_klient=False,
+        nowy_klient='Nie',
         imie_nazwisko="Jan Kowalski",
-        numer_telefonu="123456789",
+        numer_telefonu=" ".join("123456789"),
         numer_rejestracyjny="WA7959E",
         marka="toyota",
         model="RAV4",
@@ -184,9 +184,9 @@ Powtórzenie_informacji: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
         zapis="Wymiana oleju",
-        nowy_klient=False,
+        nowy_klient='Nie',
         imie_nazwisko="Jan Kowalski",
-        numer_telefonu="123456789",
+        numer_telefonu=" ".join("123456789"),
         numer_rejestracyjny="WA7959E",
         marka="toyota",
         model="RAV4",
@@ -240,7 +240,7 @@ Informacje_dobrze: Koniec """
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
         imie_nazwisko="Jan Kowalski",
         wiadomość="Czy mogę przyjechać wcześniej na wymianę świec?",
-        numer_telefonu="123456789",
+        numer_telefonu=" ".join("123456789"),
     ) in content
 
     response = phone_call._make_request({ 'SpeechResult': 'Koniec' })
@@ -322,9 +322,9 @@ Informacje_dobrze: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
         zapis="Przegląd auta",
-        nowy_klient=True,
+        nowy_klient="Tak",
         imie_nazwisko="Robert Falkowski",
-        numer_telefonu="728898380",
+        numer_telefonu=" ".join("728898380"),
         numer_rejestracyjny="WA7958E",
         marka="lexus",
         model="IS 200",
@@ -357,7 +357,7 @@ Informacje_dobrze: koniec """
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
         imie_nazwisko="Robert Falkowski",
         wiadomość="Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?",
-        numer_telefonu="728898380",
+        numer_telefonu=" ".join("728898380"),
     ) in content
 
     response = phone_call._make_request({ 'SpeechResult': 'koniec' })
@@ -639,9 +639,9 @@ Powtórzenie_informacji: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
         zapis="Wymiana oleju",
-        nowy_klient=False,
+        nowy_klient="Nie",
         imie_nazwisko="Jan Kowalski",
-        numer_telefonu="123456789",
+        numer_telefonu=" ".join("123456789"),
         numer_rejestracyjny="WA7959E",
         marka="toyota",
         model="RAV4",
@@ -657,9 +657,9 @@ Powtórzenie_informacji: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][9][0].format(
         zapis="Przegląd auta",
-        nowy_klient=False,
+        nowy_klient="Nie",
         imie_nazwisko="Jan Kowalski",
-        numer_telefonu="123456789",
+        numer_telefonu=" ".join("123456789"),
         numer_rejestracyjny="WA7959I",
         marka="toyota",
         model="RAV4",
@@ -706,7 +706,7 @@ def test_correct_wiadomosc(
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
         imie_nazwisko="Jan Kowalski",
         wiadomość="Kiedy mogę odebrać auto po wymianie opon?",
-        numer_telefonu="123456789",
+        numer_telefonu=" ".join("123456789"),
     ) in content
 
     response = phone_call._make_request({ 'SpeechResult': 'Tak' })
@@ -718,7 +718,7 @@ def test_correct_wiadomosc(
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
         imie_nazwisko="Jan Kowalski",
         wiadomość="Kiedy mogę odebrać auto po wymianie opon?",
-        numer_telefonu="123456788",
+        numer_telefonu=" ".join("123456788"),
     ) in content
 
     response = phone_call._make_request({ 'SpeechResult': 'Nie' })
@@ -727,4 +727,71 @@ def test_correct_wiadomosc(
 
     response = phone_call._make_request({ 'SpeechResult': 'Dziękuje, to wszystko' })
     content = response.content.decode()
+    assert "Hangup" in content
+
+@pytest.mark.django_db
+def test_inne(
+    phone_call: TwilioPhoneCall,
+    db: db
+) -> None:
+    """ Test when callers goal is not to make an appointment or send a message. """
+    response = phone_call.initiate()
+
+    response = phone_call._make_request({"SpeechResult": "Czy rozmawiam z mamą?"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["INNE"] in content
+
+    response = phone_call._make_request({"SpeechResult": "Czy rozmawiam z mamą?"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["INNE"] in content
+    
+    response = phone_call._make_request({"SpeechResult": "Czy rozmawiam z mamą?"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["INNE END"] in content
+    assert "Hangup" in content
+
+@pytest.mark.django_db
+def test_wiadomosc_already_done(
+    phone_call: TwilioPhoneCall,
+    db: db
+) -> None:
+    """ Test when caller already sent a message. """
+    response = phone_call.initiate()
+
+    response = phone_call._make_request({"SpeechResult": "Chciałbym się zapytać, kiedy mógłbym odebrać auto po wymianie opon."})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][0][0] in content
+
+    response = phone_call._make_request({"SpeechResult": "Jan Kowalski"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][1][0] in content
+
+    response = phone_call._make_request({"SpeechResult": "Kiedy mogę odebrać auto po wymianie opon?"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][2][0] in content
+
+    response = phone_call._make_request({"SpeechResult": "123456789"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
+        imie_nazwisko="Jan Kowalski",
+        wiadomość="Kiedy mogę odebrać auto po wymianie opon?",
+        numer_telefonu=" ".join("123456789"),
+    ) in content
+
+    response = phone_call._make_request({"SpeechResult": "Nie"})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ"][4][0] in content
+
+    response = phone_call._make_request({"SpeechResult": "Chciałbym zostawić kolejną wiadomość."})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ ALREADY DONE"] in content
+
+    response = phone_call._make_request({"SpeechResult": "Chciałbym zostawić kolejną wiadomość."})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ ALREADY DONE"] in content
+
+    response = phone_call._make_request({"SpeechResult": "Chciałbym zostawić kolejną wiadomość."})
+    content = response.content.decode()
+    assert const.PREPARED_TEXT["WIADOMOŚĆ DONE END"] in content
+
     assert "Hangup" in content

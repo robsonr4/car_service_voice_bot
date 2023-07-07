@@ -9,6 +9,8 @@ openai.api_key = settings.OPENAI_API_KEY
 
 
 def cancel(request: HttpRequest, vr: VoiceResponse):
+    """ Check if the caller wants to cancel the current flow."""
+
     flow: str = request.session["CURRENT_FLOW"].lower()
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
     if set(("anuluj", flow)).issubset(set(last_speech)):
@@ -40,7 +42,7 @@ def end(request: HttpRequest, vr: VoiceResponse):
 
 def correct(request: HttpRequest, vr: VoiceResponse):
     """ Check if the caller wants to correct the saved information,
-and if yes, then gather the answer and correct info."""
+and if yes, then gather the answer and correct info in correct_message func."""
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
     flow = request.session["CURRENT_FLOW"]
     if set(("tak", )).issubset(set(last_speech)):
@@ -54,7 +56,7 @@ and if yes, then gather the answer and correct info."""
     
     
 def correct_message(request: HttpRequest):
-    """ Correct the clients data."""
+    """ Correct the client's data."""
     flow = request.session["CURRENT_FLOW"].split(" ")[1]
     if flow == "ZAPIS":
         fields = [
@@ -92,7 +94,7 @@ def correct_message(request: HttpRequest):
     request.session["CURRENT_FLOW"] = flow
 
 def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceResponse):
-    """ Save the client's data in the zapis flow."""
+    """ Save the client's data."""
 
     bool_vars = ["nowy_klient"]
     str_vars = [
@@ -105,14 +107,18 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceRes
 
     if var_name in bool_vars and \
     set(("tak", )).issubset(set(last_speech)):
-        request.session["CLIENT_DATA"][var_name] = False
+        request.session["CLIENT_DATA"][var_name] = "Nie"
         return True
     elif var_name in bool_vars and \
     set(("nie", )).issubset(set(last_speech)):
-        request.session["CLIENT_DATA"][var_name] = True
+        request.session["CLIENT_DATA"][var_name] = "Tak"
         return True
     elif var_name in str_vars:
-        request.session["CLIENT_DATA"][var_name] = request.session["CHAT"][-1]["content"].strip()
+        ans = request.session["CHAT"][-1]["content"].strip()
+        if "numer_telefonu" in var_name:
+            request.session["CLIENT_DATA"][var_name] = " ".join(ans)
+        else:
+            request.session["CLIENT_DATA"][var_name] = ans
         return True
     elif var_name in spec_vars:
         if request.session["CLIENT_DATA"]["marka"] == "":
@@ -194,7 +200,9 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceRes
 
     return request.session["CLIENT_DATA"]
 
+
 def check_with_db(answer, possible_answers, filt):
+    """ Check if the answer is in the database. """
     possible_answers = Car.objects.filter(**filt).values_list(possible_answers, flat=True).distinct()
     possible_answers = [str(x) for x in possible_answers]
     prompt = POSSIBILITIES.format(
@@ -243,6 +251,8 @@ KONWERSACJA: koniec
 TEMAT: KONIEC
 KONWERSACJA: Za ile będziesz?
 TEMAT: INNE
+KONWERSACJA: nie
+TEMAT: KONIEC
 KONWERSACJA: Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?
 TEMAT: WIADOMOŚĆ
 KONWERSACJA: """
@@ -253,15 +263,15 @@ KONWERSACJA: """
 
 
 CORRECT_MESSAGE = """ Dane, które są podane, są niepoprawne. Bazując na tym, co powiedział klient, popraw dane, które są niepoprawne:
-CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawlak | numer_telefonu: 123123123 | numer_rejestracyjny: WB44444 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: koniec;
+CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawlak | numer_telefonu: 1 2 3 1 2 3 1 2 3 | numer_rejestracyjny: WB44444 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: koniec;
 SPEECH: Moję imię to Paweł Pawluk, nie Paweł Pawlak, oraz mój numer rejestracyjny to WB44443;
-NEW_CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawluk | numer_telefonu: 123123123 | numer_rejestracyjny: WB44443 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: koniec
-CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawlak | numer_telefonu: 123123123 | numer_rejestracyjny: WB44444 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: Auto jest po wypadku, proszę o delikatne podejście;
+NEW_CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawluk | numer_telefonu: 1 2 3 1 2 3 1 2 3 | numer_rejestracyjny: WB44443 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: koniec
+CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawlak | numer_telefonu: 1 2 3 1 2 3 1 2 3 | numer_rejestracyjny: WB44444 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: Auto jest po wypadku, proszę o delikatne podejście;
 SPEECH: Moję imię to Paweł Pawluk, nie Paweł Pawlak, oraz mój numer rejestracyjny to WB44443;
-NEW_CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawluk | numer_telefonu: 123123123 | numer_rejestracyjny: WB44443 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: Auto jest po wypadku, proszę o delikatne podejście
-CLIENT_DATA: | imie_nazwisko: Ania Enty | wiadomość: Ile zajmie wymiana świec w lexusie rx 400? | numer_telefonu: 334334334;
+NEW_CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawluk | numer_telefonu: 1 2 3 1 2 3 1 2 3 | numer_rejestracyjny: WB44443 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: Auto jest po wypadku, proszę o delikatne podejście
+CLIENT_DATA: | imie_nazwisko: Ania Enty | wiadomość: Ile zajmie wymiana świec w lexusie rx 400? | numer_telefonu: 3 3 4 3 3 4 3 3 4;
 SPEECH: Jest błąd w numerze telefonu, mój numer telefonu to 3 3 4 3 3 4 3 3 5;
-NEW_CLIENT_DATA: | imie_nazwisko: Ania Enty | wiadomość: Ile zajmie wymiana świec w lexusie rx 400? | numer_telefonu: 334334335
+NEW_CLIENT_DATA: | imie_nazwisko: Ania Enty | wiadomość: Ile zajmie wymiana świec w lexusie rx 400? | numer_telefonu: 3 3 4 3 3 4 3 3 5
 CLIENT_DATA: {client_data};
 SPEECH: {speech};
 """
@@ -307,13 +317,3 @@ NOT_ROK = """Przepraszam ale podany rok produkcji-  {rok_produkcji} - dla marki 
 
 NOT_3_ROK = """Przepraszam ale podany rok produkcji- {rok_produkcji} - dla marki {marka} i modelu {model}
                nie istnieje w naszej bazie. Zostaną Państwo przekazani konsultantowi naszego serwisu, proszę czekać."""
-
-# request.session["CHAT"].append(const.PROMPTS["PRZEGLAD"])
-        # answer = openai.ChatCompletion.create(
-        #     model="gpt-3.5-turbo",
-        #     messages=request.session["CHAT"],
-        #     temperature=0.8,
-        #     max_tokens=150,
-        #     n=1,
-        #     stop="\n",
-        # )

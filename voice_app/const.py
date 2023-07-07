@@ -21,7 +21,10 @@ PREPARED_TEXT = {
         Jak mogłabym Państwu dzisiaj pomóc?""",
     "CANCEL": "Czy na pewno chcą państwo anulować {flow}?",
     "ZAPIS": [
-        ("""Zrozumiałam, że chcą Państwo się zapisać na serwis. W każdym momencie mogą Państwo
+        ("""Zrozumiałam, że chcą Państwo się zapisać na serwis. W trakcie rozmowy zostaną państwo 
+            poproszeni między innymi o podanie: numeru rejestracyjnego pojazdu, model oraz rok 
+            produkcji samochodu, a także o numer telefonu. Jeżeli Państwo potrzebują przygotować 
+            informację, proszę się rozłączyć i zadzwonić później. W każdym momencie mogą Państwo
             powiedzieć 'anuluj zapis', a w takim wypadku wszystkie zapisane informacje zostaną
             usunięte. Na początku chciałabym się zapytać, na jaką usługę lub usługi chcieliby
             Państwo się zapisać?""", "zapis", [cancel]),
@@ -39,7 +42,7 @@ PREPARED_TEXT = {
             Cel zapisu. {zapis}.
             Nowy klient. {nowy_klient}.
             Imię i nazwisko. {imie_nazwisko}.
-            Numer telefonu. {numer_telefonu}
+            Numer telefonu. {numer_telefonu}.
             Numer rejestracyjny samochodu. {numer_rejestracyjny}
             Marka samochodu. {marka}
             Model samochodu. {model}
@@ -69,6 +72,14 @@ PREPARED_TEXT = {
             powtórzyć opcję, proszę powiedzieć 'opcje'.""", "", [correct]),
         3,
     ],
+    "INNE": """ Przepraszam, ale nie zrozumiałam powodu Państwa rozmowy. Proszę powiedzieć czy chcą Państwo
+                się zapisać na serwis, czy zostawić wiadomość konsultantowi?""",
+    "INNE END": """ Przepraszam, ale nie zrozumiałam powodu Państwa rozmowy. Życzę miłego dnia. Do widzenia.""",
+    "ZAPIS ALREADY DONE": """ Przepraszam, ale nie mogę zapisać Państwa na serwis, ponieważ już jesteście Państwo zapisani. 
+                              Czy mogłabym w czymś jeszcze pomóc? """,
+    "WIADOMOŚĆ ALREADY DONE": """ Przepraszam, ale nie mogę przekazać Państwa wiadomości konsultantowi, ponieważ już zostawili Państwo jedną wiadomość. """,
+    "ZAPIS DONE END": """ Przepraszam, ale nie mogę zapisać Państwa na serwis, ponieważ już jesteście Państwo zapisani. Życzę miłego dnia. Do widzenia.""",
+    "WIADOMOŚĆ DONE END": """ Przepraszam, ale nie mogę przekazać Państwa wiadomości konsultantowi, ponieważ już zostawili Państwo jedną wiadomość. Życzę miłego dnia. Do widzenia.""",
 }
 
 FLOWS = {
