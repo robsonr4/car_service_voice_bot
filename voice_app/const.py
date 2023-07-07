@@ -1,4 +1,4 @@
-from .funcs import cancel, end
+from .funcs import cancel, end, correct
 
 PROMPTS = {
     "GENERAL": {
@@ -45,14 +45,12 @@ PREPARED_TEXT = {
             Model samochodu. {model}
             Rok produkcji samochodu. {rok_produkcji}
             Dodatkowe informacje. {dodatkowe_informacje}
-            Czy wszystko się zgadza?""", "", [cancel]),
+            Czy chcą Państwo poprawić zapisane informacje?""", "", [cancel]),
         ("""Dziękuję. Zostali Państwo wstępnie zapisani na przegląd. Po zakończeniu rozmowy
             napiszę do Państwa konsultant z potwierdzeniem wizyty. Czy mogłabym w czymś
-            jeszcze pomóc?""", "", []),
+            jeszcze pomóc?""", "", [correct]),
         9,
     ],
-    "CORRECT": """Oczywiście, proszę powiedzieć powoli co mam poprawić, a następnie
-        powtórzę wszystko co zrozumiałam.""",
     "WIADOMOŚĆ": [
         ("""Zrozumiałam, że chcą Państwo zostawić wiadomość konsultantowi. W każdym momencie mogą
             Państwo powiedzieć 'anuluj wiadomość', a w takim wypadku wszystkie zapisane informację
@@ -61,14 +59,14 @@ PREPARED_TEXT = {
             Państwa o imię i nazwisko.""", "imie_nazwisko", [cancel]),
         ("Dziękuję. Proszę powiedzieć, jaką wiadomość chcą Państwo zostawić?", "wiadomość", [cancel]),
         ("Dziękuję. Proszę podać swój numer telefonu.", "numer_telefonu", [cancel]),
-        ("""Dziękuje, powtórzę wszystkie informację, którę zrozumiałam. Proszę powiedzieć 'koniec'
-            jeżeli wszystko się zgadza, lub 'nie zgadza się', jeżeli trzeba coś poprawić.
+        ("""Dziękuję, powtórzę wszystkie informacje, które zrozumiałam.
             Imie i nazwisko. {imie_nazwisko}.
             Wiadomość. {wiadomość}.
-            Numer telefonu. {numer_telefonu}""", "", [cancel]),
+            Numer telefonu. {numer_telefonu}
+            Czy chcą Państwo poprawić zapisane informacje?""", "", [cancel]),
         ("""Dziękuje. Państwa wiadomość została przekazana konsultantowi. Po zakończeniu rozmowy
             dostaną Państwo smsa z potwierdzeniem wizyty. Czy mogłabym w czymś jeszcze pomóc? Aby
-            powtórzyć opcję, proszę powiedzieć 'opcje'.""", "", []),
+            powtórzyć opcję, proszę powiedzieć 'opcje'.""", "", [correct]),
         3,
     ],
 }

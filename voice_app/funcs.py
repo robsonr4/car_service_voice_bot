@@ -12,7 +12,7 @@ def cancel(request: HttpRequest, vr: VoiceResponse):
     flow: str = request.session["CURRENT_FLOW"].lower()
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
     if set(("anuluj", flow)).issubset(set(last_speech)):
-        request.session["CURRENT_FLOW"] = "CANCEL ZAPIS"
+        request.session["CURRENT_FLOW"] = f"CANCEL {flow}"
         request.session["CURRENT_FLOW_NUM"] -= 1
         # request.session["CHAT"].append({"role": "assistant", "content": "Anulowali Państwo zapis na przegląd. Czy mógłabym Państwu jeszcze jakoś pomóc? Aby powtórzyć opcje, proszę powiedzieć 'opcje'."})
         vr.redirect("/gather_answer/", method="POST")
@@ -38,27 +38,65 @@ def end(request: HttpRequest, vr: VoiceResponse):
     else:
         return False
 
-def fix_zapis(request: HttpRequest, vr: VoiceResponse):
+def correct(request: HttpRequest, vr: VoiceResponse):
     """ Check if the caller wants to correct the saved information,
 and if yes, then gather the answer and correct info."""
-
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
-    if set(("nie", "zgadza")).issubset(set(last_speech)):
-        request.session["CURRENT_FLOW"] = "POPRAWA ZAPIS"
-        vr.say(
-            "Oczywiście, proszę powiedzieć powoli co mam poprawić, a następnie powtórzę wszystko co zrozumiałam.",
-            voice="alice",
-            language="pl-PL")
+    flow = request.session["CURRENT_FLOW"]
+    if set(("tak", )).issubset(set(last_speech)):
+        request.session["CURRENT_FLOW"] = f"CORRECT {flow}"
+        request.session["TEXT"] = CORRECT
+        request.session["CURRENT_FLOW_NUM"] -= 1
         vr.redirect("/gather_answer/", method="POST")
+        return True
     else:
         return False
+    
+    
+def correct_message(request: HttpRequest):
+    """ Correct the clients data."""
+    flow = request.session["CURRENT_FLOW"].split(" ")[1]
+    if flow == "ZAPIS":
+        fields = [
+            "zapis", "nowy_klient", "imie_nazwisko", 
+            "numer_telefonu", "numer_rejestracyjny", 
+            "marka", "model", "rok_produkcji", 
+            "dodatkowe_informacje"
+        ]
+    else:
+        fields = [
+            "imie_nazwisko", "wiadomość",
+            "numer_telefonu", 
+        ]
+    cl = ""
+    for field in fields:
+        cl += f" | {field}: {request.session['CLIENT_DATA'][field]}"
+    answer = request.session["CHAT"][-1]["content"]
+    prompt = CORRECT_MESSAGE.format(
+        client_data=cl,
+        speech=answer)
+    
+    ans = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=prompt,
+            temperature=0.2,
+            stop="\n",
+            max_tokens=400,
+        )
+    matched_ans = ans.choices[0].text.strip().split(' | ')[1:]
 
-def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict):
+    for i, field in enumerate(fields):
+        request.session["CLIENT_DATA"][field] = matched_ans[i].split(":")[1].strip()
+
+
+    request.session["CURRENT_FLOW"] = flow
+
+def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceResponse):
     """ Save the client's data in the zapis flow."""
 
     bool_vars = ["nowy_klient"]
     str_vars = [
-        "zapis", "imie_nazwisko", "numer_rejestracyjny", "dodatkowe informacje",
+        "zapis", "imie_nazwisko", "numer_rejestracyjny", "dodatkowe_informacje",
         "numer_telefonu", "wiadomość"
     ]
     spec_vars = ["marka", "model", "rok_produkcji"]
@@ -79,15 +117,78 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict):
     elif var_name in spec_vars:
         if request.session["CLIENT_DATA"]["marka"] == "":
             ans = check_with_db(request.session["CHAT"][-1]["content"], "marka", {})
-            request.session["CLIENT_DATA"][var_name] = ans.lower()
+            if ans.lower() != "again":
+                request.session["CLIENT_DATA"][var_name] = ans.lower()
+                request.session["INCORRECT_CAR"] = 0
+            elif request.session["INCORRECT_CAR"] < 2:
+                request.session["TEXT"] = NOT_MARKA.format(
+                    marka=request.session["CHAT"][-1]["content"]
+                )
+                vr.redirect("/gather_answer/5/", method="POST")
+                request.session["INCORRECT_CAR"] += 1
+                return False
+            else:
+                vr.say(
+                    NOT_3_MARKA.format(
+                        marka=request.session["CHAT"][-1]["content"],
+                    ), 
+                    voice="alice", 
+                    language="pl-PL"
+                )
+                vr.hangup()
+                return False
         elif request.session["CLIENT_DATA"]["model"] == "":
             filt = {"marka": request.session["CLIENT_DATA"]["marka"]}
             ans = check_with_db(request.session["CHAT"][-1]["content"], "model", filt)
-            request.session["CLIENT_DATA"][var_name] = ans
+            if ans.lower() != "again":
+                request.session["CLIENT_DATA"][var_name] = ans
+                request.session["INCORRECT_CAR"] = 0
+            elif request.session["INCORRECT_CAR"] < 2:
+                request.session["TEXT"] = NOT_MODEL.format(
+                    marka=request.session["CLIENT_DATA"]["marka"],
+                    model=request.session["CHAT"][-1]["content"]
+                )
+                vr.redirect("/gather_answer/5/", method="POST")
+                request.session["INCORRECT_CAR"] += 1
+                return False
+            else:
+                vr.say(
+                    NOT_3_MODEL.format(
+                        marka=request.session["CLIENT_DATA"]["marka"],
+                        model=request.session["CHAT"][-1]["content"],
+                    ), 
+                    voice="alice", 
+                    language="pl-PL"
+                )
+                vr.hangup()
+                return False
         else:
             filt = {"marka": request.session["CLIENT_DATA"]["marka"], "model": request.session["CLIENT_DATA"]["model"]}
             ans = check_with_db(request.session["CHAT"][-1]["content"], "rok_produkcji", filt)
-            request.session["CLIENT_DATA"][var_name] = ans
+            if ans.lower() != "again":
+                request.session["CLIENT_DATA"][var_name] = ans
+                request.session["INCORRECT_CAR"] = 0
+            elif request.session["INCORRECT_CAR"] < 2:
+                request.session["TEXT"] = NOT_ROK.format(
+                    marka=request.session["CLIENT_DATA"]["marka"],
+                    model=request.session["CLIENT_DATA"]["model"],
+                    rok_produkcji=request.session["CHAT"][-1]["content"],
+                )
+                vr.redirect("/gather_answer/5/", method="POST")
+                request.session["INCORRECT_CAR"] += 1
+                return False
+            else:
+                vr.say(
+                    NOT_3_ROK.format(
+                        marka=request.session["CLIENT_DATA"]["marka"],
+                        model=request.session["CLIENT_DATA"]["model"],
+                        rok_produkcji=request.session["CHAT"][-1]["content"],
+                    ), 
+                    voice="alice", 
+                    language="pl-PL"
+                )
+                vr.hangup()
+                return False
         return True
 
 
@@ -99,7 +200,7 @@ def check_with_db(answer, possible_answers, filt):
     prompt = POSSIBILITIES.format(
         possibilities=", ".join(possible_answers),
         speech=answer)
-    print(prompt)
+        
     ans = openai.Completion.create(
             engine="text-davinci-003",
             prompt=prompt,
@@ -108,10 +209,9 @@ def check_with_db(answer, possible_answers, filt):
             max_tokens=150,
         )
     matched_ans = ans.choices[0].text.strip()
-    print(matched_ans)
 
     return matched_ans
-
+    
 
 def flow_prompt(request: HttpRequest):
     prompt = """Sklasyfikuj temat rozmowy jako ZAPIS (zapisanie klienta na przegląd, wymianę opon, czy inną czynność), WIADOMOŚĆ (przekazanie wiadomości lub pytania), KONIEC (zakończenie rozmowy), OPCJE (powtórz opcje dla klienta) lub INNE (jeżeli nie zrozumiałeś tematu wypowiedzi):
@@ -152,8 +252,22 @@ KONWERSACJA: """
     return prompt
 
 
+CORRECT_MESSAGE = """ Dane, które są podane, są niepoprawne. Bazując na tym, co powiedział klient, popraw dane, które są niepoprawne:
+CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawlak | numer_telefonu: 123123123 | numer_rejestracyjny: WB44444 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: koniec;
+SPEECH: Moję imię to Paweł Pawluk, nie Paweł Pawlak, oraz mój numer rejestracyjny to WB44443;
+NEW_CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawluk | numer_telefonu: 123123123 | numer_rejestracyjny: WB44443 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: koniec
+CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawlak | numer_telefonu: 123123123 | numer_rejestracyjny: WB44444 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: Auto jest po wypadku, proszę o delikatne podejście;
+SPEECH: Moję imię to Paweł Pawluk, nie Paweł Pawlak, oraz mój numer rejestracyjny to WB44443;
+NEW_CLIENT_DATA: | zapis: Wymiana świec | nowy_klient: False | imie_nazwisko: Paweł Pawluk | numer_telefonu: 123123123 | numer_rejestracyjny: WB44443 | marka: toyota | model: Auris | rok_produkcji: 2014 | dodatkowe_informacje: Auto jest po wypadku, proszę o delikatne podejście
+CLIENT_DATA: | imie_nazwisko: Ania Enty | wiadomość: Ile zajmie wymiana świec w lexusie rx 400? | numer_telefonu: 334334334;
+SPEECH: Jest błąd w numerze telefonu, mój numer telefonu to 3 3 4 3 3 4 3 3 5;
+NEW_CLIENT_DATA: | imie_nazwisko: Ania Enty | wiadomość: Ile zajmie wymiana świec w lexusie rx 400? | numer_telefonu: 334334335
+CLIENT_DATA: {client_data};
+SPEECH: {speech};
+"""
 
-
+CORRECT = """Oczywiście, proszę powiedzieć powoli co mam poprawić, a następnie
+        powtórzę wszystko co zrozumiałam."""
 
 POSSIBILITIES = """ Select which word from POSSIBILITIES resembles the SPEECH the most, if you think that none of them do or there is more than 1 possibility, write 'again':
 POSSIBILITIES: lexus, toyota;

@@ -40,15 +40,17 @@ def gather_answer(request: HttpRequest, st: str = "auto"):
     "CANCEL" != request.session["CURRENT_FLOW"].split(" ")[0] and \
     "TEXT" in request.session:
         vr.say(request.session["TEXT"], voice="alice", language="pl-PL")
+
     elif "CURRENT_FLOW" in request.session and \
     "CANCEL" == request.session["CURRENT_FLOW"].split(" ")[0]:
         flow = request.session["CURRENT_FLOW"].split(" ")[1]
         vr.say(const.PREPARED_TEXT["CANCEL"].format(flow=flow), voice="alice", language="pl-PL")
-
     if "REPEAT" in request.session and \
     request.session["REPEAT"]:
         request.session["REPEAT"] = False
 
+
+    print(request.session["TEXT"])
     vr.gather(
         speechTimeout=st,
         speechModel='experimental_conversations',
@@ -75,8 +77,6 @@ def present_prompts(request: HttpRequest):
 def transfer_to_flow(request: HttpRequest):
     """ Transfer the caller to particular conversation flow.
     """
-    print("### TRANSFER TO FLOW ###")
-    print(request.session["CURRENT_FLOW"])
     ### ADD ALL VARIABLES TO SESSION ###
     if "CHAT" not in request.session or \
     "CURRENT_FLOW" not in request.session or \
@@ -109,6 +109,7 @@ def transfer_to_flow(request: HttpRequest):
         }
         request.session["REPEAT"] = False
         request.session["NO SPEECH NUM"] = 0
+        request.session["INCORRECT_CAR"] = 0
 
     vr = VoiceResponse()
 
@@ -139,7 +140,6 @@ def transfer_to_flow(request: HttpRequest):
 
     ### CLASSIFY TOPIC OF CONVERSATION IF START ###
     if request.session["CURRENT_FLOW"] == "START":
-        print(funcs.flow_prompt(request))
         request.session["CURRENT_FLOW"] = openai.Completion.create(
             engine="text-davinci-003",
             prompt=funcs.flow_prompt(request),
@@ -148,7 +148,6 @@ def transfer_to_flow(request: HttpRequest):
             max_tokens=150,
             n=1,
         ).choices[0].text.strip() # type: ignore
-        print(request.session["CURRENT_FLOW"])
         request.session["CHAT"].insert(0, const.PROMPTS["GENERAL"])
         request.session["CURRENT_FLOW_NUM"] = 0
 
@@ -183,32 +182,43 @@ def transfer_to_flow(request: HttpRequest):
         vr.say("Anulacja zapisu została odwołana. Powtórzę moją ostatnią wypowiedź.", voice="alice", language="pl-PL")
         request.session["NOT CANCEL"] = True
     ### FLOWS ###
+    if request.session["CURRENT_FLOW"].split(" ")[0] == "CORRECT":
+        funcs.correct_message(request)
+        request.session["AFTER CORRECT"] = True
     if request.session["CURRENT_FLOW"] in ["ZAPIS", "WIADOMOŚĆ"]:
-        ### SAVE ANSWER ###
-        if "NOT CANCEL" in request.session:
-            del request.session["NOT CANCEL"]
-        elif request.session["CURRENT_FLOW_NUM"] != 0:
-            funcs.save_flow(
-                request,
-                request.session["CURRENT_FLOW"],
-                const.PREPARED_TEXT
-            )
-
-        ### ADD TEXT TO BE SAID ###
-        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][-1]:
-            request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
-                request.session["CURRENT_FLOW_NUM"]
-            ][0].format(**request.session["CLIENT_DATA"])
-        else:
-            request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
-                request.session["CURRENT_FLOW_NUM"]
-            ][0]
 
         ### GO THROUGH ALL FUNCS ###
         for func in const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][request.session["CURRENT_FLOW_NUM"]][2]:
             ans = func(request, vr)
             if ans:
                 return HttpResponse(str(vr))
+
+        ### SAVE ANSWER ###
+        if "NOT CANCEL" in request.session:
+            del request.session["NOT CANCEL"]
+        elif request.session["CURRENT_FLOW_NUM"] != 0 and \
+        "AFTER CORRECT" not in request.session:
+            out = funcs.save_flow(
+                request,
+                request.session["CURRENT_FLOW"],
+                const.PREPARED_TEXT,
+                vr
+            )
+            if not out:
+                return HttpResponse(str(vr))
+        elif "AFTER CORRECT" in request.session:
+            del request.session["AFTER CORRECT"]
+
+        ### ADD TEXT TO BE SAID ###
+        if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][-1]:
+            request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
+                request.session["CURRENT_FLOW_NUM"]
+            ][0].format(**request.session["CLIENT_DATA"])
+
+        else:
+            request.session["TEXT"] = const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][
+                request.session["CURRENT_FLOW_NUM"]
+            ][0]
 
         ### CHECK IF THIS IS THE END ###
         if request.session["CURRENT_FLOW_NUM"] == const.PREPARED_TEXT[request.session["CURRENT_FLOW"]][-1] + 1:
