@@ -10,12 +10,21 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+import environ
+import os
+
+env = environ.Env()
+
+# Set the project base directory
+# Take environment variables from .env file
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
@@ -27,9 +36,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['.ngrok-free.app', 'localhost']
 
-TWILIO_AUTH_TOKEN = "b49c67a20f3de1a89691c99c1f6cc06f"
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN')
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = env('OPENAI_API_KEY')
 
 
 # Application definition
