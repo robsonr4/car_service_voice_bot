@@ -43,11 +43,11 @@ PREPARED_TEXT = {
             Nowy klient. {nowy_klient}.
             Imię i nazwisko. {imie_nazwisko}.
             Numer telefonu. {numer_telefonu}.
-            Numer rejestracyjny samochodu. {numer_rejestracyjny}
-            Marka samochodu. {marka}
-            Model samochodu. {model}
-            Rok produkcji samochodu. {rok_produkcji}
-            Dodatkowe informacje. {dodatkowe_informacje}
+            Numer rejestracyjny samochodu. {numer_rejestracyjny}.
+            Marka samochodu. {marka}.
+            Model samochodu. {model}.
+            Rok produkcji samochodu. {rok_produkcji}.
+            Dodatkowe informacje. {dodatkowe_informacje}.
             Czy chcą Państwo poprawić zapisane informacje?""", "", [cancel]),
         ("""Dziękuję. Zostali Państwo wstępnie zapisani na przegląd. Po zakończeniu rozmowy
             napiszę do Państwa konsultant z potwierdzeniem wizyty. Czy mogłabym w czymś
@@ -65,7 +65,7 @@ PREPARED_TEXT = {
         ("""Dziękuję, powtórzę wszystkie informacje, które zrozumiałam.
             Imie i nazwisko. {imie_nazwisko}.
             Wiadomość. {wiadomość}.
-            Numer telefonu. {numer_telefonu}
+            Numer telefonu. {numer_telefonu}.
             Czy chcą Państwo poprawić zapisane informacje?""", "", [cancel]),
         ("""Dziękuje. Państwa wiadomość została przekazana konsultantowi. Po zakończeniu rozmowy
             dostaną Państwo smsa z potwierdzeniem wizyty. Czy mogłabym w czymś jeszcze pomóc? Aby

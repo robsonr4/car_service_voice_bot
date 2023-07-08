@@ -115,7 +115,7 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceRes
         return True
     elif var_name in str_vars:
         ans = request.session["CHAT"][-1]["content"].strip()
-        if "numer_telefonu" in var_name:
+        if "numer_telefonu" in var_name or "numer_rejestracyjny" in var_name:
             request.session["CLIENT_DATA"][var_name] = " ".join(ans)
         else:
             request.session["CLIENT_DATA"][var_name] = ans
