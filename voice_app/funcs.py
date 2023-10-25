@@ -8,7 +8,7 @@ from .models import Car
 openai.api_key = settings.OPENAI_API_KEY
 
 
-def cancel(request: HttpRequest, vr: VoiceResponse):
+def cancel(request: HttpRequest, vr: VoiceResponse) -> bool:
     """ Check if the caller wants to cancel the current flow."""
 
     flow: str = request.session["CURRENT_FLOW"].lower()
@@ -19,8 +19,10 @@ def cancel(request: HttpRequest, vr: VoiceResponse):
         # request.session["CHAT"].append({"role": "assistant", "content": "Anulowali Państwo zapis na przegląd. Czy mógłabym Państwu jeszcze jakoś pomóc? Aby powtórzyć opcje, proszę powiedzieć 'opcje'."})
         vr.redirect("/gather_answer/", method="POST")
         return True
+    else:
+        return False
 
-def repeat(request: HttpRequest, vr: VoiceResponse):
+def repeat(request: HttpRequest, vr: VoiceResponse) -> bool:
     """ Check if the caller wants to repeat the last speech."""
 
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
@@ -31,18 +33,20 @@ def repeat(request: HttpRequest, vr: VoiceResponse):
     else:
         return False
 
-def end(request: HttpRequest, vr: VoiceResponse):
+def end(request: HttpRequest, vr: VoiceResponse) -> bool:
     """ Chech if the caller wants to end the conversation."""
 
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
     if "koniec" in set(last_speech):
         vr.redirect(reverse("gather_answer"), method="POST")
+        return True
     else:
         return False
 
-def correct(request: HttpRequest, vr: VoiceResponse):
+def correct(request: HttpRequest, vr: VoiceResponse) -> bool:
     """ Check if the caller wants to correct the saved information,
 and if yes, then gather the answer and correct info in correct_message func."""
+    
     last_speech = request.session["CHAT"][-1]["content"].lower().split(" ")
     flow = request.session["CURRENT_FLOW"]
     if set(("tak", )).issubset(set(last_speech)):
@@ -55,8 +59,9 @@ and if yes, then gather the answer and correct info in correct_message func."""
         return False
     
     
-def correct_message(request: HttpRequest):
+def correct_message(request: HttpRequest) -> None:
     """ Correct the client's data."""
+
     flow = request.session["CURRENT_FLOW"].split(" ")[1]
     if flow == "ZAPIS":
         fields = [
@@ -93,7 +98,7 @@ def correct_message(request: HttpRequest):
 
     request.session["CURRENT_FLOW"] = flow
 
-def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceResponse):
+def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceResponse) -> bool:
     """ Save the client's data."""
 
     bool_vars = ["nowy_klient"]
@@ -201,7 +206,7 @@ def save_flow(request: HttpRequest, flow: str, PREPARED_TEXT: dict, vr: VoiceRes
     return request.session["CLIENT_DATA"]
 
 
-def check_with_db(answer, possible_answers, filt):
+def check_with_db(answer, possible_answers, filt) -> str:
     """ Check if the answer is in the database. """
     possible_answers = Car.objects.filter(**filt).values_list(possible_answers, flat=True).distinct()
     possible_answers = [str(x) for x in possible_answers]
@@ -221,7 +226,7 @@ def check_with_db(answer, possible_answers, filt):
     return matched_ans
     
 
-def flow_prompt(request: HttpRequest):
+def flow_prompt(request: HttpRequest) -> str:
     prompt = """Sklasyfikuj temat rozmowy jako ZAPIS (zapisanie klienta na przegląd, wymianę opon, czy inną czynność), WIADOMOŚĆ (przekazanie wiadomości lub pytania), KONIEC (zakończenie rozmowy), OPCJE (powtórz opcje dla klienta) lub INNE (jeżeli nie zrozumiałeś tematu wypowiedzi):
 KONWERSACJA: Dzień dobry, mam pytanie na temat ceny przeglądu samochodu. Ile kosztuje przegląd samochodu?
 TEMAT: WIADOMOŚĆ
