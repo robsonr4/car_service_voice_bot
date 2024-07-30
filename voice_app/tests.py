@@ -7,6 +7,7 @@ from . import const
 from .test_funcs import TwilioPhoneCall, phone_call, django_db_setup, db_access_without_rollback_and_truncate
 from .funcs import NOT_MODEL, NOT_MARKA, NOT_3_ROK, NOT_ROK, CORRECT
 
+@mock.patch('voice_app.views.request_validator', autospec=True)
 @pytest.mark.django_db
 def test_options(
     phone_call: TwilioPhoneCall,
@@ -424,7 +425,7 @@ Powtórzenie_informacji: koniec """
     response = phone_call._make_request({ 'SpeechResult': 'Leksus' })
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][6][0] in content
-    
+
     response = phone_call._make_request({ 'SpeechResult': 'RX 220' })
     content = response.content.decode()
     assert NOT_MODEL.format(
@@ -467,7 +468,7 @@ Powtórzenie_informacji: koniec """
         rok_produkcji="1982",
     ) in content
     assert "Hangup" in content
-    
+
 
 @pytest.mark.django_db
 def test_anuluj_wiadomosc(
@@ -744,7 +745,7 @@ def test_inne(
     response = phone_call._make_request({"SpeechResult": "Czy rozmawiam z mamą?"})
     content = response.content.decode()
     assert const.PREPARED_TEXT["INNE"] in content
-    
+
     response = phone_call._make_request({"SpeechResult": "Czy rozmawiam z mamą?"})
     content = response.content.decode()
     assert const.PREPARED_TEXT["INNE END"] in content
