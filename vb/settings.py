@@ -11,8 +11,6 @@ env = environ.Env()
 
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = 'django-insecure-##hgus0epy$5t(mh_83evo&qr6t24gn(0qpz-))@^oudpr7-nb'
-
 DEBUG = True
 
 ALLOWED_HOSTS = ['.ngrok-free.app', 'localhost']
