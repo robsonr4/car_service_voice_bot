@@ -264,7 +264,7 @@ CLIENT
 zapis: Przegląd auta
 nowy_klient: Nie
 imie_nazwisko: Robert Falkowski
-numer_telefonu: 728898380
+numer_telefonu: 123123123
 numer_rejestracyjny: WA7959E
 marka: Lexus
 model: IS200
@@ -276,7 +276,7 @@ wiadomość:
     Chciałbym się zapytać czy mógłbym przy okazji
     zostawienia mojego lexusa odebrać rx400,
     który jest u Państwa na serwisie?
-numer_telefonu: 728898380
+numer_telefonu: 123123123
 Informacje_dobrze: koniec """
 
     response = phone_call.initiate()
@@ -299,11 +299,11 @@ Informacje_dobrze: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][3][0] in content
 
-    response = phone_call._make_request({ 'SpeechResult': '728898380' })
+    response = phone_call._make_request({ 'SpeechResult': '123123123' })
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][4][0] in content
 
-    response = phone_call._make_request({ 'SpeechResult': 'WA7958E' })
+    response = phone_call._make_request({ 'SpeechResult': 'WA7959E' })
     content = response.content.decode()
     assert const.PREPARED_TEXT["ZAPIS"][5][0] in content
 
@@ -325,8 +325,8 @@ Informacje_dobrze: koniec """
         zapis="Przegląd auta",
         nowy_klient="Tak",
         imie_nazwisko="Robert Falkowski",
-        numer_telefonu=" ".join("728898380"),
-        numer_rejestracyjny="WA7958E",
+        numer_telefonu=" ".join("123123123"),
+        numer_rejestracyjny="WA7959E",
         marka="lexus",
         model="IS 200",
         rok_produkcji="2003",
@@ -353,12 +353,12 @@ Informacje_dobrze: koniec """
     content = response.content.decode()
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][2][0] in content
 
-    response = phone_call._make_request({ 'SpeechResult': '728898380' })
+    response = phone_call._make_request({ 'SpeechResult': '123123123' })
     content = response.content.decode()
     assert const.PREPARED_TEXT["WIADOMOŚĆ"][3][0].format(
         imie_nazwisko="Robert Falkowski",
         wiadomość="Chciałbym się zapytać czy mógłbym przy okazji zostawienia mojego lexusa odebrać rx400, który jest u Państwa na serwisie?",
-        numer_telefonu=" ".join("728898380"),
+        numer_telefonu=" ".join("123123123"),
     ) in content
 
     response = phone_call._make_request({ 'SpeechResult': 'koniec' })
